@@ -50,7 +50,7 @@ model Wedding {
 
   coupleId       String  @unique
   couple         User    @relation("CoupleWedding", fields: [coupleId], references: [id])
-  coordinatorId  String?
+  coordinatorId  String?  @unique
   coordinator    User?   @relation("CoordinatorWedding", fields: [coordinatorId], references: [id])
 
   stages    Stage[]
