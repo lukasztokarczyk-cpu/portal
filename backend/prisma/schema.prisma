@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  admin
+  coordinator
+  couple
+}
+
+enum StageStatus {
+  open
+  in_progress
+  completed
+}
+
+enum PaymentStatus {
+  unpaid
+  paid
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wedding        Wedding?         @relation("CoupleWedding")
+  coordinatedAt  Wedding?         @relation("CoordinatorWedding")
+  sentMessages   Message[]        @relation("SentMessages")
+  passwordResets PasswordReset[]
+}
+
+model Wedding {
+  id          String   @id @default(uuid())
+  weddingDate DateTime
+  venueName   String   @default("Perła Pienin")
+  guestCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  coupleId       String  @unique
+  couple         User    @relation("CoupleWedding", fields: [coupleId], references: [id])
+  coordinatorId  String?
+  coordinator    User?   @relation("CoordinatorWedding", fields: [coordinatorId], references: [id])
+
+  stages    Stage[]
+  guests    Guest[]
+  tables    TableLayout[]
+  payments  Payment[]
+  documents Document[]
+  messages  Message[]
+  menuItems WeddingMenuItem[]
+}
+
+model Stage {
+  id          String      @id @default(uuid())
+  weddingId   String
+  wedding     Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      StageStatus @default(open)
+  dueDate     DateTime?
+  notes       String?
+  order       Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Guest {
+  id        String   @id @default(uuid())
+  weddingId String
+  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  firstName String
+  lastName  String
+  isChild   Boolean  @default(false)
+  diet      String?
+  tableId   String?
+  table     TableLayout? @relation(fields: [tableId], references: [id])
+  email     String?
+  phone     String?
+  rsvp      String?  // yes / no / pending
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TableLayout {
+  id        String   @id @default(uuid())
+  weddingId String
+  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  name      String
+  shape     String   @default("round") // round / rectangular
+  capacity  Int      @default(8)
+  posX      Float    @default(0)
+  posY      Float    @default(0)
+  rotation  Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guests Guest[]
+}
+
+model MenuCategory {
+  id    String     @id @default(uuid())
+  name  String
+  order Int        @default(0)
+  items MenuItem[]
+}
+
+model MenuItem {
+  id          String        @id @default(uuid())
+  categoryId  String
+  category    MenuCategory  @relation(fields: [categoryId], references: [id])
+  name        String
+  description String?
+  pricePerPerson Decimal    @db.Decimal(10, 2)
+  isAvailable Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+
+  weddingSelections WeddingMenuItem[]
+}
+
+model WeddingMenuItem {
+  id        String   @id @default(uuid())
+  weddingId String
+  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem  MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity  Int      @default(1)
+  notes     String?
+  locked    Boolean  @default(false)
+
+  @@unique([weddingId, menuItemId])
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  weddingId   String
+  wedding     Wedding       @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  title       String
+  amount      Decimal       @db.Decimal(10, 2)
+  dueDate     DateTime?
+  status      PaymentStatus @default(unpaid)
+  paidAt      DateTime?
+  invoicePath String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  weddingId  String
+  wedding    Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  title      String
+  type       String   // contract / annex / regulations / other
+  filePath   String
+  fileSize   Int?
+  mimeType   String?
+  uploadedBy String
+  createdAt  DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  weddingId  String
+  wedding    Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  content    String
+  isRead     Boolean  @default(false)
+  attachment String?
+  createdAt  DateTime @default(now())
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

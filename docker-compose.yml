@@ -1,0 +1,52 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: perlapienin-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-strefa_pary}
+      POSTGRES_USER: ${POSTGRES_USER:-perla}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secretpassword}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-perla}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    container_name: perlapienin-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-perla}:${POSTGRES_PASSWORD:-secretpassword}@db:5432/${POSTGRES_DB:-strefa_pary}
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      NODE_ENV: ${NODE_ENV:-production}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost}
+      PORT: 4000
+    volumes:
+      - uploads:/app/uploads
+    ports:
+      - "4000:4000"
+
+  frontend:
+    build: ./frontend
+    container_name: perlapienin-web
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  pgdata:
+  uploads:

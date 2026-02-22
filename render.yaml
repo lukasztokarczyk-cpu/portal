@@ -1,0 +1,65 @@
+# render.yaml – Blueprint dla Render.com
+# Umieść ten plik w katalogu głównym repozytorium.
+# Render wykryje go automatycznie przy tworzeniu projektu.
+
+services:
+  # ── BACKEND (Node.js Web Service) ──────────────────────────────
+  - type: web
+    name: strefa-pary-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate
+    startCommand: npm run start:prod
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false          # Wpisz ręcznie w Render Dashboard
+      - key: DIRECT_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true  # Render wygeneruje losową wartość
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CLIENT_URL
+        fromService:
+          name: strefa-pary-frontend
+          type: web
+          property: host
+          format: "https://{host}"
+
+  # ── FRONTEND (Static Site) ─────────────────────────────────────
+  - type: web
+    name: strefa-pary-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    plan: free
+    routes:
+      - type: rewrite
+        source: /api/*
+        destination: https://strefa-pary-backend.onrender.com/api/$1
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: strefa-pary-backend
+          type: web
+          property: host
+          format: "https://{host}"
