@@ -265,7 +265,7 @@ export default function MenuPage() {
             </ModeButton>
           </div>
           {config.dessertChoice === 'deser' && <DishSelect section="DESER" slotIndex={0} label="Wybór deseru" />}
-          {config.dessertChoice === 'tort' && <p className="text-rose-600 font-medium">🎂 Wybrано tort weselny</p>}
+          {config.dessertChoice === 'tort' && <p className="text-rose-600 font-medium">🎂 Wybrano tort weselny</p>}
         </div>
 
         {/* 1. CIEPŁE DANIE */}
