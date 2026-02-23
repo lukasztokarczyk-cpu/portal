@@ -29,15 +29,19 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { title, amount, dueDate, notes } = req.body;
+    const { title, amount, dueDate, notes, status } = req.body;
     const payment = await prisma.payment.update({
       where: { id: req.params.id },
-      data: { title, amount, dueDate: dueDate ? new Date(dueDate) : undefined, notes },
+      data: {
+        ...(title && { title }),
+        ...(amount && { amount }),
+        ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+        ...(notes !== undefined && { notes }),
+        ...(status && { status, paidAt: status === 'paid' ? new Date() : null }),
+      },
     });
     res.json(payment);
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 };
 
 exports.markPaid = async (req, res, next) => {
