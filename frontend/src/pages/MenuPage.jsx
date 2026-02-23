@@ -194,7 +194,7 @@ export default function MenuPage() {
         <div className="flex items-center gap-3 flex-wrap">
           {!isCouple && weddings.length > 1 && (
             <select className="input w-auto" value={selectedWeddingId || ''} onChange={e => setSelectedWeddingId(e.target.value)}>
-              {weddings.map(w => <option key={w.id} value={w.id}>{w.brideName} i {w.groomName}</option>)}
+              {weddings.map(w => <option key={w.id} value={w.id}>{w?.couple?.name || w?.couple?.email}</option>)}
             </select>
           )}
           {isAdmin && <button onClick={() => setAdminView('dishes')} className="btn-secondary text-sm">🍽️ Zarządzaj daniami</button>}

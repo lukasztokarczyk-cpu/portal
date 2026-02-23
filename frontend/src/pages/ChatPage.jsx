@@ -85,7 +85,7 @@ export default function ChatPage() {
           >
             {weddings.map((w) => (
               <option key={w.id} value={w.id}>
-                {w.brideName} i {w.groomName} ({new Date(w.weddingDate).toLocaleDateString('pl-PL')})
+                {w?.couple?.name || w?.couple?.email} • {new Date(w.weddingDate).toLocaleDateString('pl-PL')}
               </option>
             ))}
           </select>

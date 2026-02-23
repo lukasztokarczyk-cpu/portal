@@ -65,7 +65,7 @@ export default function DashboardPage() {
               {weddings.map((w) => (
                 <div key={w.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                   <div>
-                    <p className="font-medium text-gray-800">{w.brideName} i {w.groomName}</p>
+                    <p className="font-medium text-gray-800">{w?.couple?.name || w?.couple?.email}</p>
                     <p className="text-sm text-gray-500">📅 {format(new Date(w.weddingDate), 'dd MMMM yyyy', { locale: pl })}</p>
                   </div>
                   <span className="text-sm text-gray-500">{w._count?.guests || 0} gości</span>

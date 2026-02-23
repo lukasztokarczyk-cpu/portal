@@ -255,7 +255,7 @@ export default function TablesPage() {
         <div className="flex items-center gap-3 flex-wrap">
           {!isCouple && weddings.length > 1 && (
             <select className="input w-auto" value={weddingId || ''} onChange={e => setWeddingId(e.target.value)}>
-              {weddings.map(w => <option key={w.id} value={w.id}>{w.brideName} i {w.groomName}</option>)}
+              {weddings.map(w => <option key={w.id} value={w.id}>{w?.couple?.name || w?.couple?.email}</option>)}
             </select>
           )}
           {isAdmin && (
