@@ -1,30 +1,16 @@
 const express = require('express');
-const { body } = require('express-validator');
 const router = express.Router();
 const { authenticate, authorize } = require('../middleware/auth');
-const { validate } = require('../middleware/validate');
 const ctrl = require('../controllers/menu.controller');
 
-// Categories
-router.get('/categories', authenticate, ctrl.getCategories);
-router.post('/categories', authenticate, authorize('admin'), [body('name').notEmpty()], validate, ctrl.createCategory);
+// Zarządzanie daniami (admin)
+router.get('/dishes', authenticate, authorize('admin', 'coordinator'), ctrl.getDishes);
+router.post('/dishes', authenticate, authorize('admin'), ctrl.addDish);
+router.delete('/dishes/:id', authenticate, authorize('admin'), ctrl.deleteDish);
 
-// Items
-router.get('/items', authenticate, ctrl.getItems);
-router.post(
-  '/items',
-  authenticate,
-  authorize('admin'),
-  [body('name').notEmpty(), body('categoryId').notEmpty(), body('pricePerPerson').isDecimal()],
-  validate,
-  ctrl.createItem
-);
-router.patch('/items/:id', authenticate, authorize('admin'), ctrl.updateItem);
-router.delete('/items/:id', authenticate, authorize('admin'), ctrl.removeItem);
-
-// Wedding menu selections
-router.get('/wedding/:weddingId/selections', authenticate, ctrl.getSelections);
-router.post('/wedding/:weddingId/select', authenticate, [body('menuItemId').notEmpty()], validate, ctrl.toggleSelection);
-router.post('/wedding/:weddingId/lock', authenticate, authorize('admin', 'coordinator'), ctrl.lockSelections);
+// Menu wesela
+router.get('/wedding/:weddingId', authenticate, ctrl.getWeddingMenu);
+router.patch('/wedding/:weddingId/config', authenticate, ctrl.updateConfig);
+router.post('/wedding/:weddingId/select', authenticate, ctrl.selectDish);
 
 module.exports = router;

@@ -1,119 +1,154 @@
 const prisma = require('../prisma/client');
 
-exports.getCategories = async (req, res, next) => {
+// Sekcje menu z konfiguracją
+const MENU_SECTIONS = {
+  ZUPA:        { label: 'Zupa', maxSelections: 1 },
+  DANIE_GLOWNE:{ label: 'Danie główne', maxSelections: null }, // zależy od trybu
+  SUROWKI:     { label: 'Surówki do obiadu', maxSelections: 3 },
+  DESER:       { label: 'Deser', maxSelections: 1 },
+  CIEPLA_1:    { label: '1. ciepłe danie', maxSelections: 1 },
+  CIEPLA_2:    { label: '2. ciepłe danie', maxSelections: 1 },
+  CIEPLA_3:    { label: '3. ciepłe danie', maxSelections: 1 },
+  ZIMNA_PLYTA: { label: 'Zimna płyta', maxSelections: 3 },
+  SALATKI:     { label: 'Sałatki', maxSelections: 2 },
+};
+
+// GET /menu/dishes - wszystkie dania (admin/coordinator)
+exports.getDishes = async (req, res, next) => {
   try {
-    const categories = await prisma.menuCategory.findMany({
-      include: { items: { where: { isAvailable: true }, orderBy: { name: 'asc' } } },
-      orderBy: { order: 'asc' },
+    const dishes = await prisma.menuDish.findMany({
+      orderBy: [{ section: 'asc' }, { name: 'asc' }],
     });
-    res.json(categories);
-  } catch (err) {
-    next(err);
-  }
+    // Pogrupuj po sekcji
+    const grouped = {};
+    for (const [key, cfg] of Object.entries(MENU_SECTIONS)) {
+      grouped[key] = { ...cfg, dishes: dishes.filter(d => d.section === key) };
+    }
+    res.json(grouped);
+  } catch (err) { next(err); }
 };
 
-exports.createCategory = async (req, res, next) => {
+// POST /menu/dishes - dodaj danie (admin)
+exports.addDish = async (req, res, next) => {
   try {
-    const { name, order } = req.body;
-    const cat = await prisma.menuCategory.create({ data: { name, order: order || 0 } });
-    res.status(201).json(cat);
-  } catch (err) {
-    next(err);
-  }
+    const { section, name, description } = req.body;
+    if (!MENU_SECTIONS[section]) return res.status(400).json({ error: 'Nieprawidłowa sekcja' });
+    const dish = await prisma.menuDish.create({ data: { section, name, description } });
+    res.status(201).json(dish);
+  } catch (err) { next(err); }
 };
 
-exports.getItems = async (req, res, next) => {
+// DELETE /menu/dishes/:id - usuń danie (admin)
+exports.deleteDish = async (req, res, next) => {
   try {
-    const items = await prisma.menuItem.findMany({
-      include: { category: true },
-      orderBy: { name: 'asc' },
-    });
-    res.json(items);
-  } catch (err) {
-    next(err);
-  }
-};
-
-exports.createItem = async (req, res, next) => {
-  try {
-    const { name, description, categoryId, pricePerPerson } = req.body;
-    const item = await prisma.menuItem.create({ data: { name, description, categoryId, pricePerPerson } });
-    res.status(201).json(item);
-  } catch (err) {
-    next(err);
-  }
-};
-
-exports.updateItem = async (req, res, next) => {
-  try {
-    const { name, description, pricePerPerson, isAvailable } = req.body;
-    const item = await prisma.menuItem.update({
-      where: { id: req.params.id },
-      data: { name, description, pricePerPerson, isAvailable },
-    });
-    res.json(item);
-  } catch (err) {
-    next(err);
-  }
-};
-
-exports.removeItem = async (req, res, next) => {
-  try {
-    await prisma.menuItem.delete({ where: { id: req.params.id } });
+    await prisma.menuDish.delete({ where: { id: req.params.id } });
     res.status(204).send();
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 };
 
-exports.getSelections = async (req, res, next) => {
+// GET /menu/wedding/:weddingId - pobierz wybory wesela
+exports.getWeddingMenu = async (req, res, next) => {
   try {
-    const wedding = await prisma.wedding.findUnique({ where: { id: req.params.weddingId } });
-    if (!wedding) return res.status(404).json({ error: 'Nie znaleziono wesela' });
+    const { weddingId } = req.params;
 
-    const selections = await prisma.weddingMenuItem.findMany({
-      where: { weddingId: req.params.weddingId },
-      include: { menuItem: { include: { category: true } } },
+    // Access control dla pary
+    if (req.user.role === 'couple') {
+      const wedding = await prisma.wedding.findUnique({ where: { coupleId: req.user.id } });
+      if (!wedding || wedding.id !== weddingId) return res.status(403).json({ error: 'Brak dostępu' });
+    }
+
+    const [config, selections, allDishes] = await Promise.all([
+      prisma.weddingMenuConfig.findUnique({ where: { weddingId } }),
+      prisma.weddingMenuSelection.findMany({
+        where: { weddingId },
+        include: { dish: true },
+        orderBy: { slotIndex: 'asc' },
+      }),
+      prisma.menuDish.findMany({ where: { isAvailable: true }, orderBy: { name: 'asc' } }),
+    ]);
+
+    // Pogrupuj dostępne dania po sekcji
+    const dishesBySection = {};
+    for (const key of Object.keys(MENU_SECTIONS)) {
+      dishesBySection[key] = allDishes.filter(d => d.section === key);
+    }
+
+    // Pogrupuj wybory po sekcji
+    const selectionsBySection = {};
+    for (const sel of selections) {
+      if (!selectionsBySection[sel.section]) selectionsBySection[sel.section] = [];
+      selectionsBySection[sel.section].push(sel);
+    }
+
+    res.json({
+      config: config || { mainCourseMode: null, dessertChoice: null, locked: false },
+      sections: MENU_SECTIONS,
+      dishesBySection,
+      selectionsBySection,
     });
-
-    const totalCost = selections.reduce((sum, s) => sum + Number(s.menuItem.pricePerPerson) * wedding.guestCount, 0);
-    res.json({ selections, totalCost, guestCount: wedding.guestCount });
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 };
 
-exports.toggleSelection = async (req, res, next) => {
+// PATCH /menu/wedding/:weddingId/config - ustaw tryb (mainCourseMode, dessertChoice)
+exports.updateConfig = async (req, res, next) => {
   try {
-    const { menuItemId, notes } = req.body;
-    const existing = await prisma.weddingMenuItem.findUnique({
-      where: { weddingId_menuItemId: { weddingId: req.params.weddingId, menuItemId } },
+    const { weddingId } = req.params;
+    const { mainCourseMode, dessertChoice, locked } = req.body;
+
+    const config = await prisma.weddingMenuConfig.upsert({
+      where: { weddingId },
+      create: { weddingId, mainCourseMode, dessertChoice, locked: locked ?? false },
+      update: { 
+        ...(mainCourseMode !== undefined && { mainCourseMode }),
+        ...(dessertChoice !== undefined && { dessertChoice }),
+        ...(locked !== undefined && { locked }),
+      },
     });
 
-    if (existing) {
-      if (existing.locked) return res.status(400).json({ error: 'Menu jest zablokowane' });
-      await prisma.weddingMenuItem.delete({ where: { id: existing.id } });
+    // Jeśli zmieniono tryb dania głównego - wyczyść poprzednie wybory dania głównego
+    if (mainCourseMode !== undefined) {
+      await prisma.weddingMenuSelection.deleteMany({
+        where: { weddingId, section: 'DANIE_GLOWNE' },
+      });
+    }
+
+    res.json(config);
+  } catch (err) { next(err); }
+};
+
+// POST /menu/wedding/:weddingId/select - wybierz danie
+exports.selectDish = async (req, res, next) => {
+  try {
+    const { weddingId } = req.params;
+    const { section, dishId, slotIndex = 0 } = req.body;
+
+    // Sprawdź config (locked)
+    const config = await prisma.weddingMenuConfig.findUnique({ where: { weddingId } });
+    if (config?.locked && req.user.role === 'couple') {
+      return res.status(403).json({ error: 'Menu jest zablokowane' });
+    }
+
+    if (!MENU_SECTIONS[section]) return res.status(400).json({ error: 'Nieprawidłowa sekcja' });
+
+    if (dishId === null || dishId === '') {
+      // Usuń wybór
+      await prisma.weddingMenuSelection.deleteMany({
+        where: { weddingId, section, slotIndex },
+      });
       return res.json({ action: 'removed' });
     }
 
-    const selection = await prisma.weddingMenuItem.create({
-      data: { weddingId: req.params.weddingId, menuItemId, notes },
-    });
-    res.status(201).json({ action: 'added', selection });
-  } catch (err) {
-    next(err);
-  }
-};
+    // Sprawdź czy danie istnieje i należy do sekcji
+    const dish = await prisma.menuDish.findUnique({ where: { id: dishId } });
+    if (!dish || dish.section !== section) return res.status(400).json({ error: 'Nieprawidłowe danie' });
 
-exports.lockSelections = async (req, res, next) => {
-  try {
-    const { locked } = req.body;
-    await prisma.weddingMenuItem.updateMany({
-      where: { weddingId: req.params.weddingId },
-      data: { locked: locked !== false },
+    const selection = await prisma.weddingMenuSelection.upsert({
+      where: { weddingId_section_slotIndex: { weddingId, section, slotIndex } },
+      create: { weddingId, section, dishId, slotIndex },
+      update: { dishId },
+      include: { dish: true },
     });
-    res.json({ message: locked !== false ? 'Menu zablokowane' : 'Menu odblokowane' });
-  } catch (err) {
-    next(err);
-  }
+
+    res.json({ action: 'selected', selection });
+  } catch (err) { next(err); }
 };

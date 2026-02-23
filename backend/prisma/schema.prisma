@@ -59,7 +59,8 @@ model Wedding {
   payments  Payment[]
   documents Document[]
   messages  Message[]
-  menuItems WeddingMenuItem[]
+  menuSelections WeddingMenuSelection[]
+  menuConfig     WeddingMenuConfig?
 }
 
 model Stage {
@@ -109,37 +110,63 @@ model TableLayout {
   guests Guest[]
 }
 
-model MenuCategory {
-  id    String     @id @default(uuid())
-  name  String
-  order Int        @default(0)
-  items MenuItem[]
+// Typ sekcji menu
+enum MenuSectionType {
+  ZUPA
+  DANIE_GLOWNE
+  SUROWKI
+  DESER
+  CIEPLA_1
+  CIEPLA_2
+  CIEPLA_3
+  ZIMNA_PLYTA
+  SALATKI
 }
 
-model MenuItem {
-  id          String        @id @default(uuid())
-  categoryId  String
-  category    MenuCategory  @relation(fields: [categoryId], references: [id])
+// Danie dostępne w systemie (admin dodaje/usuwa)
+model MenuDish {
+  id          String          @id @default(uuid())
+  section     MenuSectionType
   name        String
   description String?
-  pricePerPerson Decimal    @db.Decimal(10, 2)
-  isAvailable Boolean       @default(true)
-  createdAt   DateTime      @default(now())
+  isAvailable Boolean         @default(true)
+  createdAt   DateTime        @default(now())
 
-  weddingSelections WeddingMenuItem[]
+  selections  WeddingMenuSelection[]
 }
 
-model WeddingMenuItem {
-  id        String   @id @default(uuid())
+// Wybory konkretnego wesela
+model WeddingMenuSelection {
+  id        String          @id @default(uuid())
   weddingId String
-  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
-  menuItemId String
-  menuItem  MenuItem @relation(fields: [menuItemId], references: [id])
-  quantity  Int      @default(1)
-  notes     String?
-  locked    Boolean  @default(false)
+  wedding   Wedding         @relation(fields: [weddingId], references: [id], onDelete: Cascade)
 
-  @@unique([weddingId, menuItemId])
+  // Tryb dania głównego: 'polmisek' | 'talerz'
+  mainCourseMode String?
+
+  // Deser lub tort: 'deser' | 'tort'
+  dessertChoice  String?
+
+  // Wybrane dania
+  dishId    String?
+  dish      MenuDish?       @relation(fields: [dishId], references: [id])
+  section   MenuSectionType
+  slotIndex Int             @default(0) // dla wielu wyborów w sekcji (0,1,2)
+
+  createdAt DateTime        @default(now())
+
+  @@unique([weddingId, section, slotIndex])
+}
+
+// Ustawienia menu wesela (tryb główny, deser/tort, locked)
+model WeddingMenuConfig {
+  id             String   @id @default(uuid())
+  weddingId      String   @unique
+  wedding        Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  mainCourseMode String?  // 'polmisek' | 'talerz'
+  dessertChoice  String?  // 'deser' | 'tort'
+  locked         Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
 }
 
 model Payment {
