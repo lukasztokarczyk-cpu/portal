@@ -52,6 +52,7 @@ model Wedding {
   couple         User    @relation("CoupleWedding", fields: [coupleId], references: [id])
   coordinatorId  String?  @unique
   coordinator    User?   @relation("CoordinatorWedding", fields: [coordinatorId], references: [id])
+  floorPlan      String?
 
   stages    Stage[]
   guests    Guest[]
