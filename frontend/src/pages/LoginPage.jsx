@@ -14,7 +14,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await login(form.email, form.password);
+      await login(form.login, form.password);
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Błąd logowania');
