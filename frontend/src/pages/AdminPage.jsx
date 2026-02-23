@@ -3,7 +3,7 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 
 function RegisterCoupleModal({ onClose, onSaved }) {
-  const [form, setForm] = useState({ name: '', email: '', password: '', weddingDate: '', coordinatorId: '' });
+  const [form, setForm] = useState({ name: '', login: '', email: '', password: '', weddingDate: '', coordinatorId: '' });
   const [coordinators, setCoordinators] = useState([]);
 
   useEffect(() => {
@@ -26,7 +26,8 @@ function RegisterCoupleModal({ onClose, onSaved }) {
         <h3 className="font-bold text-lg mb-4">Zarejestruj Parę Młodą</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div><label className="label">Imiona Pary *</label><input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Anna i Piotr Nowak" /></div>
-          <div><label className="label">Email *</label><input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required /></div>
+          <div><label className="label">Login *</label><input className="input" value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} required placeholder="np. nowakowie" /></div>
+          <div><label className="label">Email (opcjonalnie)</label><input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
           <div><label className="label">Hasło (min. 8 znaków) *</label><input type="password" className="input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} required minLength={8} /></div>
           <div><label className="label">Data ślubu *</label><input type="date" className="input" value={form.weddingDate} onChange={(e) => setForm({ ...form, weddingDate: e.target.value })} required /></div>
           <div className="flex gap-2 pt-2">

@@ -8,30 +8,41 @@ const generateToken = (userId) =>
 
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
+    const { login, password } = req.body;
+    if (!login || !password) return res.status(400).json({ error: 'Podaj login i hasło' });
+
+    // Szukaj po login lub email (backwards compat)
+    const user = await prisma.user.findFirst({
+      where: { OR: [{ login }, { email: login }] },
+    });
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      return res.status(401).json({ error: 'Nieprawidłowy email lub hasło' });
+      return res.status(401).json({ error: 'Nieprawidłowy login lub hasło' });
     }
     const token = generateToken(user.id);
     const { password: _, ...userSafe } = user;
     res.json({ token, user: userSafe });
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 };
 
 exports.registerCouple = async (req, res, next) => {
   try {
-    const { email, password, name, weddingDate, coordinatorId } = req.body;
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) return res.status(409).json({ error: 'Email już istnieje' });
+    const { login, email, password, name, weddingDate, coordinatorId } = req.body;
+    if (!login) return res.status(400).json({ error: 'Login jest wymagany' });
+
+    const existingLogin = await prisma.user.findUnique({ where: { login } });
+    if (existingLogin) return res.status(409).json({ error: 'Login już istnieje' });
+
+    if (email) {
+      const existingEmail = await prisma.user.findUnique({ where: { email } });
+      if (existingEmail) return res.status(409).json({ error: 'Email już istnieje' });
+    }
 
     const hashed = await bcrypt.hash(password, 12);
-
     const user = await prisma.user.create({
       data: {
-        email,
+        login,
+        email: email || null,
         password: hashed,
         name,
         role: 'couple',
@@ -47,32 +58,24 @@ exports.registerCouple = async (req, res, next) => {
 
     const { password: _, ...userSafe } = user;
     res.status(201).json(userSafe);
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 };
 
 exports.forgotPassword = async (req, res, next) => {
   try {
-    const { email } = req.body;
-    const user = await prisma.user.findUnique({ where: { email } });
-    // Always return success to prevent email enumeration
+    const { login } = req.body;
+    const user = await prisma.user.findFirst({
+      where: { OR: [{ login }, { email: login }] },
+    });
     if (user) {
       const token = crypto.randomBytes(32).toString('hex');
       await prisma.passwordReset.create({
-        data: {
-          userId: user.id,
-          token,
-          expiresAt: new Date(Date.now() + 3600000), // 1h
-        },
+        data: { userId: user.id, token, expiresAt: new Date(Date.now() + 3600000) },
       });
-      // TODO: Send email with reset link
-      console.log(`[PASSWORD RESET] Token for ${email}: ${token}`);
+      console.log(`[PASSWORD RESET] Token for ${login}: ${token}`);
     }
-    res.json({ message: 'Jeśli konto istnieje, wysłano email z linkiem do resetowania hasła' });
-  } catch (err) {
-    next(err);
-  }
+    res.json({ message: 'Jeśli konto istnieje, skontaktuj się z administratorem' });
+  } catch (err) { next(err); }
 };
 
 exports.resetPassword = async (req, res, next) => {
@@ -88,9 +91,7 @@ exports.resetPassword = async (req, res, next) => {
       prisma.passwordReset.update({ where: { id: reset.id }, data: { used: true } }),
     ]);
     res.json({ message: 'Hasło zostało zmienione' });
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 };
 
 exports.me = async (req, res) => {
@@ -108,7 +109,5 @@ exports.changePassword = async (req, res, next) => {
     const hashed = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({ where: { id: user.id }, data: { password: hashed } });
     res.json({ message: 'Hasło zostało zmienione' });
-  } catch (err) {
-    next(err);
-  }
+  } catch (err) { next(err); }
 };
