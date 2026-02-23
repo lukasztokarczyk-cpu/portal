@@ -10,8 +10,6 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
     lastName: guest?.lastName || '',
     isChild: guest?.isChild || false,
     diet: guest?.diet || '',
-    email: guest?.email || '',
-    phone: guest?.phone || '',
     rsvp: guest?.rsvp || 'pending',
   });
 
@@ -52,22 +50,12 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
               <input className="input" placeholder="np. wegetariańska" value={form.diet} onChange={(e) => setForm({ ...form, diet: e.target.value })} />
             </div>
             <div>
-              <label className="label">RSVP</label>
+              <label className="label">Potwierdzenie przybycia</label>
               <select className="input" value={form.rsvp} onChange={(e) => setForm({ ...form, rsvp: e.target.value })}>
                 <option value="pending">Oczekuje</option>
                 <option value="yes">Tak</option>
                 <option value="no">Nie</option>
               </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Email</label>
-              <input type="email" className="input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">Telefon</label>
-              <input className="input" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             </div>
           </div>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -159,7 +147,7 @@ export default function GuestsPage() {
             <th className="pb-3 pr-4">Typ</th>
             <th className="pb-3 pr-4">Dieta</th>
             <th className="pb-3 pr-4">Stolik</th>
-            <th className="pb-3 pr-4">RSVP</th>
+            <th className="pb-3 pr-4">Potwierdzenie</th>
             <th className="pb-3"></th>
           </tr></thead>
           <tbody className="divide-y divide-gray-50">
