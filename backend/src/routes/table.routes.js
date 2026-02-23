@@ -7,19 +7,18 @@ const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const ctrl = require('../controllers/table.controller');
 
+// Trasy z /wedding/ MUSZĄ być przed /:id
 router.get('/wedding/:weddingId', authenticate, ctrl.getByWedding);
 router.post('/wedding/:weddingId', authenticate, [body('name').notEmpty().trim()], validate, ctrl.create);
-router.patch('/:id', authenticate, ctrl.update);
-router.patch('/:id/position', authenticate, ctrl.updatePosition);
-router.delete('/:id', authenticate, ctrl.remove);
 router.post('/wedding/:weddingId/save-layout', authenticate, ctrl.saveLayout);
-
-// Goście przy stoliku
-router.post('/:id/guests', authenticate, ctrl.addGuestToTable);
 router.patch('/wedding/:weddingId/assign-guest', authenticate, ctrl.assignGuest);
-
-// Rzut sali
 router.post('/wedding/:weddingId/floor-plan', authenticate, authorize('admin', 'coordinator'), upload.single('floorPlan'), ctrl.uploadFloorPlan);
 router.get('/wedding/:weddingId/floor-plan', authenticate, ctrl.getFloorPlan);
+
+// Trasy z /:id po wszystkich /wedding/
+router.post('/:id/guests', authenticate, ctrl.addGuestToTable);
+router.patch('/:id/position', authenticate, ctrl.updatePosition);
+router.patch('/:id', authenticate, ctrl.update);
+router.delete('/:id', authenticate, ctrl.remove);
 
 module.exports = router;
