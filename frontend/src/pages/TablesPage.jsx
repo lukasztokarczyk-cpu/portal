@@ -6,31 +6,39 @@ import { useAuth } from '../store/AuthContext';
 const CANVAS_W = 900;
 const CANVAS_H = 600;
 
-function TableShape({ table, selected, onSelect, onDragStart, isDraggable }) {
+// Specjalne typy stolów prostokątnych (tylko przy trybie okrągłym)
+const SPECIAL_RECT_TYPES = [
+  { value: 'couple', label: '💍 Stół Pary Młodej' },
+  { value: 'dj', label: '🎧 DJ / Zespół' },
+  { value: 'photographer', label: '📷 Fotograf' },
+];
+
+function TableShape({ table, selected, onSelect, onDragStart }) {
   const isRound = table.shape === 'round';
-  const W = isRound ? 90 : 130;
+  const W = isRound ? 90 : 140;
   const H = isRound ? 90 : 70;
   const filled = table.guests?.length || 0;
   const pct = filled / table.capacity;
   const fillColor = pct >= 1 ? '#fca5a5' : pct > 0.7 ? '#fde68a' : '#d1fae5';
-  const strokeColor = selected ? '#e11d48' : '#fda4af';
+  const strokeColor = selected ? '#e11d48' : table.specialType ? '#7c3aed' : '#fda4af';
+  const strokeWidth = selected ? 3 : table.specialType ? 2.5 : 1.5;
 
   return (
     <g
       transform={`translate(${table.posX},${table.posY})`}
-      style={{ cursor: isDraggable ? 'grab' : 'pointer' }}
+      style={{ cursor: 'grab' }}
       onClick={(e) => { e.stopPropagation(); onSelect(table); }}
-      onMouseDown={isDraggable ? (e) => onDragStart(e, table) : undefined}
+      onMouseDown={(e) => onDragStart(e, table)}
     >
       {isRound ? (
-        <circle cx={45} cy={45} r={44} fill={fillColor} stroke={strokeColor} strokeWidth={selected ? 3 : 1.5} />
+        <circle cx={45} cy={45} r={44} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
       ) : (
-        <rect width={W} height={H} rx={8} fill={fillColor} stroke={strokeColor} strokeWidth={selected ? 3 : 1.5} />
+        <rect width={W} height={H} rx={8} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
       )}
-      <text x={W / 2} y={H / 2 - 6} textAnchor="middle" dominantBaseline="middle" fontSize="11" fill="#be123c" fontWeight="700">
-        {table.name.length > 12 ? table.name.slice(0, 12) + '…' : table.name}
+      <text x={W/2} y={H/2 - 7} textAnchor="middle" dominantBaseline="middle" fontSize="10" fill="#be123c" fontWeight="700">
+        {table.name.length > 14 ? table.name.slice(0, 14) + '…' : table.name}
       </text>
-      <text x={W / 2} y={H / 2 + 10} textAnchor="middle" fontSize="10" fill="#6b7280">
+      <text x={W/2} y={H/2 + 9} textAnchor="middle" fontSize="9" fill="#6b7280">
         {filled}/{table.capacity} os.
       </text>
     </g>
@@ -48,16 +56,16 @@ export default function TablesPage() {
   const [guests, setGuests] = useState([]);
   const [selected, setSelected] = useState(null);
   const [floorPlanUrl, setFloorPlanUrl] = useState(null);
+  const [tableMode, setTableMode] = useState(null); // 'round' | 'rectangular'
   const [showAddTable, setShowAddTable] = useState(false);
   const [showAddGuest, setShowAddGuest] = useState(false);
-  const [newTable, setNewTable] = useState({ name: '', shape: 'round', capacity: 8 });
+  const [newTable, setNewTable] = useState({ name: '', shape: 'round', capacity: 8, specialType: '' });
   const [newGuest, setNewGuest] = useState({ firstName: '', lastName: '', isChild: false });
   const [editTable, setEditTable] = useState(null);
   const dragging = useRef(null);
   const svgRef = useRef();
   const positionsRef = useRef({});
 
-  // Load weddings
   useEffect(() => {
     if (isCouple) {
       api.get('/weddings/my').then(r => setWeddingId(r.data.id)).catch(console.error);
@@ -81,18 +89,32 @@ export default function TablesPage() {
       tablesData.forEach(t => { positionsRef.current[t.id] = { posX: t.posX, posY: t.posY }; });
       setGuests(g.data.guests || g.data);
       setFloorPlanUrl(fp.data.url);
+      // Wykryj tryb stołów (na podstawie stołów bez specialType)
+      const normalTables = tablesData.filter(t => !t.specialType);
+      if (normalTables.length > 0) {
+        const hasRound = normalTables.some(t => t.shape === 'round');
+        setTableMode(hasRound ? 'round' : 'rectangular');
+      }
     }).catch(console.error);
   }, [weddingId]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
-  // Update selected table from tables list
   useEffect(() => {
     if (selected) {
       const updated = tables.find(t => t.id === selected.id);
       if (updated) setSelected(updated);
     }
   }, [tables]);
+
+  // Aktualizuj newTable.shape gdy zmienia się tableMode
+  useEffect(() => {
+    if (tableMode === 'rectangular') {
+      setNewTable(p => ({ ...p, shape: 'rectangular', capacity: 10, specialType: '' }));
+    } else if (tableMode === 'round') {
+      setNewTable(p => ({ ...p, shape: 'round', capacity: 8, specialType: '' }));
+    }
+  }, [tableMode]);
 
   const handleDragStart = (e, table) => {
     e.preventDefault();
@@ -103,7 +125,7 @@ export default function TablesPage() {
 
     const onMove = (ev) => {
       if (!dragging.current) return;
-      const x = Math.max(0, Math.min(CANVAS_W - 140, ev.clientX - svg.left - startX));
+      const x = Math.max(0, Math.min(CANVAS_W - 150, ev.clientX - svg.left - startX));
       const y = Math.max(0, Math.min(CANVAS_H - 100, ev.clientY - svg.top - startY));
       positionsRef.current[dragging.current.id] = { posX: x, posY: y };
       setTables(prev => prev.map(t => t.id === dragging.current?.id ? { ...t, posX: x, posY: y } : t));
@@ -126,20 +148,42 @@ export default function TablesPage() {
     document.addEventListener('mouseup', onUp);
   };
 
+  const setMode = (mode) => {
+    if (tables.filter(t => !t.specialType).length > 0) {
+      toast.error('Nie można zmienić trybu — usuń najpierw wszystkie stoliki gości');
+      return;
+    }
+    setTableMode(mode);
+  };
+
   const addTable = async () => {
     if (!newTable.name.trim()) return toast.error('Podaj nazwę stolika');
-    const maxCap = newTable.shape === 'round' ? 12 : 24;
-    const minCap = newTable.shape === 'round' ? 1 : 6;
-    const cap = Math.min(maxCap, Math.max(minCap, parseInt(newTable.capacity) || 8));
+
+    let shape = newTable.shape;
+    let capacity = parseInt(newTable.capacity) || 8;
+
+    if (newTable.specialType) {
+      // Specjalny prostokątny stół (przy trybie okrągłym)
+      shape = 'rectangular';
+      capacity = Math.min(24, Math.max(6, capacity));
+    } else if (tableMode === 'round') {
+      shape = 'round';
+      capacity = Math.min(12, Math.max(1, capacity));
+    } else {
+      shape = 'rectangular';
+      capacity = Math.min(24, Math.max(6, capacity));
+    }
+
     try {
       await api.post(`/tables/wedding/${weddingId}`, {
         name: newTable.name,
-        shape: newTable.shape,
-        capacity: cap,
+        shape,
+        capacity,
+        specialType: newTable.specialType || null,
         posX: 80 + Math.random() * 500,
         posY: 80 + Math.random() * 300,
       });
-      setNewTable({ name: '', shape: 'round', capacity: 8 });
+      setNewTable({ name: '', shape: tableMode === 'round' ? 'round' : 'rectangular', capacity: tableMode === 'round' ? 8 : 10, specialType: '' });
       setShowAddTable(false);
       toast.success('Stolik dodany');
       refresh();
@@ -147,13 +191,13 @@ export default function TablesPage() {
   };
 
   const deleteTable = async (id) => {
-    if (!confirm('Usunąć stolik i odznaczyć gości?')) return;
+    if (!confirm('Usunąć stolik? Goście zostaną odpisani.')) return;
     try {
       await api.delete(`/tables/${id}`);
       setSelected(null);
       toast.success('Stolik usunięty');
       refresh();
-    } catch { toast.error('Błąd'); }
+    } catch { toast.error('Błąd usuwania'); }
   };
 
   const addGuestToTable = async () => {
@@ -189,7 +233,7 @@ export default function TablesPage() {
   const saveTableEdit = async () => {
     if (!editTable) return;
     try {
-      await api.patch(`/tables/${editTable.id}`, { name: editTable.name, shape: editTable.shape, capacity: editTable.capacity });
+      await api.patch(`/tables/${editTable.id}`, { name: editTable.name, capacity: editTable.capacity });
       toast.success('Zapisano');
       setEditTable(null);
       refresh();
@@ -198,8 +242,10 @@ export default function TablesPage() {
 
   const selectedTable = selected ? tables.find(t => t.id === selected.id) : null;
   const unassignedGuests = guests.filter(g => !g.tableId);
-  const totalGuests = guests.length;
   const assignedGuests = guests.filter(g => g.tableId).length;
+
+  // Czy można dodać specjalny prostokątny stół
+  const canAddSpecialRect = tableMode === 'round';
 
   return (
     <div className="space-y-4">
@@ -214,7 +260,7 @@ export default function TablesPage() {
           )}
           {isAdmin && (
             <label className="btn-secondary text-sm cursor-pointer">
-              🖼️ Wgraj rzut sali
+              🖼️ Rzut sali
               <input type="file" accept="image/*" className="hidden" onChange={uploadFloorPlan} />
             </label>
           )}
@@ -222,39 +268,93 @@ export default function TablesPage() {
         </div>
       </div>
 
+      {/* Wybór trybu stołów */}
+      {!tableMode && tables.length === 0 && (
+        <div className="card border-2 border-rose-100 bg-rose-50">
+          <h2 className="font-bold text-gray-800 mb-3">Wybierz typ stołów dla gości:</h2>
+          <div className="flex gap-4 flex-wrap">
+            <button onClick={() => setMode('round')} className="flex-1 min-w-48 py-4 rounded-xl border-2 border-gray-200 bg-white hover:border-rose-400 transition-all text-center">
+              <div className="text-3xl mb-1">⬤</div>
+              <p className="font-semibold text-gray-800">Stoły okrągłe</p>
+              <p className="text-xs text-gray-500 mt-1">max 12 gości / stół</p>
+              <p className="text-xs text-gray-400 mt-1">+ można dodać prostokątny dla Pary / DJ / Fotografa</p>
+            </button>
+            <button onClick={() => setMode('rectangular')} className="flex-1 min-w-48 py-4 rounded-xl border-2 border-gray-200 bg-white hover:border-rose-400 transition-all text-center">
+              <div className="text-3xl mb-1">⬛</div>
+              <p className="font-semibold text-gray-800">Stoły prostokątne</p>
+              <p className="text-xs text-gray-500 mt-1">6–24 gości / stół</p>
+              <p className="text-xs text-gray-400 mt-1">tylko prostokątne dla wszystkich</p>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tryb aktywny */}
+      {tableMode && (
+        <div className="flex items-center gap-3 text-sm text-gray-600">
+          <span>Tryb: <strong>{tableMode === 'round' ? '⬤ Okrągłe' : '⬛ Prostokątne'}</strong></span>
+          {tables.filter(t => !t.specialType).length === 0 && (
+            <button onClick={() => setTableMode(null)} className="text-xs text-rose-500 underline">Zmień tryb</button>
+          )}
+        </div>
+      )}
+
       {/* Stats */}
-      <div className="flex gap-4 text-sm text-gray-600">
+      <div className="flex gap-4 text-sm text-gray-600 flex-wrap">
         <span>🪑 Stoliki: {tables.length}</span>
-        <span>👥 Gości: {assignedGuests}/{totalGuests} przypisanych</span>
-        <span>⚠️ Nieprzypisanych: {unassignedGuests.length}</span>
+        <span>👥 Gości: {assignedGuests}/{guests.length} przypisanych</span>
+        <span className={unassignedGuests.length > 0 ? 'text-orange-500' : 'text-green-600'}>
+          {unassignedGuests.length > 0 ? `⚠️ Nieprzypisanych: ${unassignedGuests.length}` : '✅ Wszyscy przypisani'}
+        </span>
       </div>
 
       {/* Modal dodawania stolika */}
       {showAddTable && (
-        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center">
-          <div className="card w-96 space-y-4">
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4">
+          <div className="card w-full max-w-sm space-y-4">
             <h2 className="font-bold text-gray-800 text-lg">Nowy stolik</h2>
-            <input className="input w-full" placeholder="Nazwa stolika (np. Stół 1)" value={newTable.name} onChange={e => setNewTable(p => ({ ...p, name: e.target.value }))} />
-            <div>
-              <p className="text-sm text-gray-600 mb-2">Kształt:</p>
-              <div className="flex gap-3">
-                <button onClick={() => setNewTable(p => ({ ...p, shape: 'round', capacity: 8 }))} className={`flex-1 py-2 rounded-xl border-2 text-sm ${newTable.shape === 'round' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200'}`}>
-                  ⬤ Okrągły (max 12)
-                </button>
-                <button onClick={() => setNewTable(p => ({ ...p, shape: 'rectangular', capacity: 10 }))} className={`flex-1 py-2 rounded-xl border-2 text-sm ${newTable.shape === 'rectangular' ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200'}`}>
-                  ⬛ Prostokątny (6-24)
-                </button>
+
+            <input className="input w-full" placeholder="Nazwa stolika (np. Stół 1)" value={newTable.name}
+              onChange={e => setNewTable(p => ({ ...p, name: e.target.value }))}
+              onKeyDown={e => e.key === 'Enter' && addTable()}
+            />
+
+            {/* Przy trybie okrągłym — można dodać specjalny prostokątny */}
+            {canAddSpecialRect && (
+              <div>
+                <p className="text-sm text-gray-600 mb-2">Typ stolika:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setNewTable(p => ({ ...p, specialType: '', shape: 'round', capacity: 8 }))}
+                    className={`py-2 rounded-xl border-2 text-sm ${!newTable.specialType ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-gray-200'}`}
+                  >
+                    ⬤ Okrągły (gość)
+                  </button>
+                  {SPECIAL_RECT_TYPES.map(t => (
+                    <button key={t.value}
+                      onClick={() => setNewTable(p => ({ ...p, specialType: t.value, shape: 'rectangular', capacity: 10 }))}
+                      className={`py-2 rounded-xl border-2 text-sm ${newTable.specialType === t.value ? 'border-purple-500 bg-purple-50 text-purple-700' : 'border-gray-200'}`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Pojemność */}
             <div>
-              <label className="text-sm text-gray-600">Pojemność: {newTable.shape === 'round' ? '(max 12)' : '(6-24)'}</label>
+              <label className="text-sm text-gray-600">
+                Pojemność {newTable.specialType || tableMode === 'rectangular' ? '(6–24)' : '(max 12)'}:
+              </label>
               <input type="number" className="input w-full mt-1"
-                min={newTable.shape === 'round' ? 1 : 6}
-                max={newTable.shape === 'round' ? 12 : 24}
+                min={newTable.specialType || tableMode === 'rectangular' ? 6 : 1}
+                max={newTable.specialType || tableMode === 'rectangular' ? 24 : 12}
                 value={newTable.capacity}
                 onChange={e => setNewTable(p => ({ ...p, capacity: parseInt(e.target.value) || p.capacity }))}
               />
             </div>
+
             <div className="flex gap-3">
               <button onClick={() => setShowAddTable(false)} className="btn-secondary flex-1">Anuluj</button>
               <button onClick={addTable} className="btn-primary flex-1">Dodaj</button>
@@ -264,15 +364,20 @@ export default function TablesPage() {
       )}
 
       {/* Główny widok */}
-      <div className="flex gap-4 items-start">
+      <div className="flex gap-4 items-start flex-col lg:flex-row">
         {/* Canvas SVG */}
-        <div className="flex-1 card p-0 overflow-hidden rounded-xl border border-gray-200">
+        <div className="flex-1 w-full card p-0 overflow-hidden rounded-xl border border-gray-200">
           <svg
             ref={svgRef}
-            width={CANVAS_W}
-            height={CANVAS_H}
+            viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
             className="block w-full"
-            style={{ background: floorPlanUrl ? `url(${floorPlanUrl}) center/cover no-repeat` : 'linear-gradient(135deg, #fff7f7 0%, #fdf2f8 100%)' }}
+            style={{
+              background: floorPlanUrl
+                ? `url(${floorPlanUrl}) center/cover no-repeat`
+                : 'linear-gradient(135deg, #fff7f7 0%, #fdf2f8 100%)',
+              minHeight: '300px',
+              maxHeight: '600px',
+            }}
             onClick={() => setSelected(null)}
           >
             {!floorPlanUrl && (
@@ -286,64 +391,63 @@ export default function TablesPage() {
               </>
             )}
             {tables.map(t => (
-              <TableShape
-                key={t.id}
-                table={t}
-                selected={selected?.id === t.id}
-                onSelect={setSelected}
-                onDragStart={handleDragStart}
-                isDraggable={true}
-              />
+              <TableShape key={t.id} table={t} selected={selected?.id === t.id} onSelect={setSelected} onDragStart={handleDragStart} />
             ))}
           </svg>
         </div>
 
         {/* Panel boczny */}
-        <div className="w-72 space-y-3 shrink-0">
+        <div className="w-full lg:w-72 space-y-3 shrink-0">
           {/* Wybrany stolik */}
           {selectedTable ? (
             <div className="card space-y-3">
               {editTable?.id === selectedTable.id ? (
                 <>
                   <input className="input w-full font-bold" value={editTable.name} onChange={e => setEditTable(p => ({ ...p, name: e.target.value }))} />
-                  <div className="flex gap-2">
-                    <button onClick={() => setEditTable(p => ({ ...p, shape: 'round' }))} className={`flex-1 text-xs py-1.5 rounded-lg border ${editTable.shape === 'round' ? 'border-rose-500 bg-rose-50' : 'border-gray-200'}`}>⬤ Okrągły</button>
-                    <button onClick={() => setEditTable(p => ({ ...p, shape: 'rectangular' }))} className={`flex-1 text-xs py-1.5 rounded-lg border ${editTable.shape === 'rectangular' ? 'border-rose-500 bg-rose-50' : 'border-gray-200'}`}>⬛ Prostokątny</button>
-                  </div>
-                  <input type="number" className="input w-full" min={editTable.shape === 'round' ? 1 : 6} max={editTable.shape === 'round' ? 12 : 24} value={editTable.capacity} onChange={e => setEditTable(p => ({ ...p, capacity: parseInt(e.target.value) }))} />
+                  <input type="number" className="input w-full"
+                    min={selectedTable.shape === 'round' ? 1 : 6}
+                    max={selectedTable.shape === 'round' ? 12 : 24}
+                    value={editTable.capacity}
+                    onChange={e => setEditTable(p => ({ ...p, capacity: parseInt(e.target.value) }))}
+                  />
                   <div className="flex gap-2">
                     <button onClick={() => setEditTable(null)} className="btn-secondary flex-1 text-sm">Anuluj</button>
                     <button onClick={saveTableEdit} className="btn-primary flex-1 text-sm">Zapisz</button>
                   </div>
                 </>
               ) : (
-                <>
-                  <div className="flex items-center justify-between">
+                <div className="flex items-start justify-between">
+                  <div>
                     <h3 className="font-bold text-gray-800">{selectedTable.name}</h3>
-                    {isAdmin && <button onClick={() => setEditTable({ ...selectedTable })} className="text-gray-400 hover:text-gray-600 text-sm">✏️</button>}
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      {selectedTable.shape === 'round' ? '⬤ Okrągły' : '⬛ Prostokątny'}
+                      {selectedTable.specialType && ` • ${SPECIAL_RECT_TYPES.find(t => t.value === selectedTable.specialType)?.label || ''}`}
+                      {' '}• {selectedTable.guests?.length || 0}/{selectedTable.capacity} miejsc
+                    </p>
                   </div>
-                  <p className="text-sm text-gray-500">
-                    {selectedTable.shape === 'round' ? '⬤ Okrągły' : '⬛ Prostokątny'} • {selectedTable.guests?.length || 0}/{selectedTable.capacity} miejsc
-                  </p>
-                </>
+                  <div className="flex gap-2">
+                    {isAdmin && <button onClick={() => setEditTable({ ...selectedTable })} className="text-gray-400 hover:text-gray-600">✏️</button>}
+                    <button onClick={() => deleteTable(selectedTable.id)} className="text-red-400 hover:text-red-600" title="Usuń stolik">🗑️</button>
+                  </div>
+                </div>
               )}
 
-              {/* Lista gości przy stoliku */}
+              {/* Goście przy stoliku */}
               <div className="space-y-1">
                 {(selectedTable.guests || []).map(g => (
-                  <div key={g.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-2 py-1">
+                  <div key={g.id} className="flex items-center justify-between text-sm bg-gray-50 rounded-lg px-2 py-1.5">
                     <span>{g.firstName} {g.lastName} {g.isChild ? '👶' : ''}</span>
-                    <button onClick={() => assignGuest(g.id, null)} className="text-red-400 hover:text-red-600 ml-2">✕</button>
+                    <button onClick={() => assignGuest(g.id, null)} className="text-red-400 hover:text-red-600 ml-2 shrink-0">✕</button>
                   </div>
                 ))}
-                {(selectedTable.guests?.length || 0) < selectedTable.capacity && (
-                  <button onClick={() => setShowAddGuest(true)} className="w-full text-xs text-rose-500 border border-rose-200 rounded-lg py-1.5 hover:bg-rose-50 mt-1">
-                    + Dodaj gościa
+                {(selectedTable.guests?.length || 0) < selectedTable.capacity && !showAddGuest && (
+                  <button onClick={() => setShowAddGuest(true)} className="w-full text-xs text-rose-500 border border-rose-200 rounded-lg py-1.5 hover:bg-rose-50">
+                    + Nowy gość
                   </button>
                 )}
               </div>
 
-              {/* Dodaj nowego gościa */}
+              {/* Formularz nowego gościa */}
               {showAddGuest && (
                 <div className="space-y-2 pt-2 border-t border-gray-100">
                   <p className="text-xs font-semibold text-gray-700">Nowy gość:</p>
@@ -360,35 +464,29 @@ export default function TablesPage() {
                 </div>
               )}
 
-              {/* Przypisz z listy nieprzypisanych */}
+              {/* Przypisz z listy */}
               {unassignedGuests.length > 0 && !showAddGuest && (selectedTable.guests?.length || 0) < selectedTable.capacity && (
                 <div className="pt-2 border-t border-gray-100">
                   <p className="text-xs text-gray-500 mb-1">Przypisz z listy gości:</p>
                   <select className="input text-sm w-full" onChange={e => { if (e.target.value) { assignGuest(e.target.value, selectedTable.id); e.target.value = ''; } }}>
-                    <option value="">— wybierz —</option>
+                    <option value="">— wybierz gościa —</option>
                     {unassignedGuests.map(g => (
                       <option key={g.id} value={g.id}>{g.firstName} {g.lastName}</option>
                     ))}
                   </select>
                 </div>
               )}
-
-              {isAdmin && (
-                <button onClick={() => deleteTable(selectedTable.id)} className="w-full text-sm text-red-500 border border-red-200 rounded-lg py-1.5 hover:bg-red-50">
-                  🗑️ Usuń stolik
-                </button>
-              )}
             </div>
           ) : (
             <div className="card text-center text-gray-400 text-sm py-8">
-              <p>🪑 Kliknij stolik<br />aby go wybrać</p>
+              <p>🪑 Kliknij stolik<br />aby go wybrać i zarządzać</p>
             </div>
           )}
 
-          {/* Nieprzypisani goście */}
+          {/* Nieprzypisani */}
           {unassignedGuests.length > 0 && (
             <div className="card">
-              <h4 className="font-medium text-gray-700 mb-2 text-sm">Nieprzypisani ({unassignedGuests.length})</h4>
+              <h4 className="font-medium text-gray-700 mb-2 text-sm">⚠️ Nieprzypisani ({unassignedGuests.length})</h4>
               <div className="space-y-1 max-h-52 overflow-y-auto">
                 {unassignedGuests.map(g => (
                   <div key={g.id} className="text-xs text-gray-600 py-1 px-2 bg-gray-50 rounded">
@@ -400,11 +498,12 @@ export default function TablesPage() {
           )}
 
           {/* Legenda */}
-          <div className="card text-xs space-y-1 text-gray-500">
+          <div className="card text-xs space-y-1.5 text-gray-500">
             <p className="font-medium text-gray-600 mb-1">Legenda:</p>
-            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-green-100 border border-green-300"/><span>Wolne miejsca</span></div>
-            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-yellow-100 border border-yellow-300"/><span>Ponad 70% zajęte</span></div>
-            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-red-100 border border-red-300"/><span>Pełny stolik</span></div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-green-100 border border-green-300" /><span>Wolne miejsca</span></div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-yellow-100 border border-yellow-300" /><span>&gt;70% zajęte</span></div>
+            <div className="flex items-center gap-2"><div className="w-4 h-4 rounded bg-red-100 border border-red-300" /><span>Pełny stolik</span></div>
+            {tableMode === 'round' && <div className="flex items-center gap-2"><div className="w-4 h-4 rounded border-2 border-purple-400" /><span>Stół specjalny</span></div>}
           </div>
         </div>
       </div>

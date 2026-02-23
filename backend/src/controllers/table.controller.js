@@ -14,7 +14,7 @@ exports.getByWedding = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const { name, shape, capacity, posX, posY } = req.body;
+    const { name, shape, capacity, posX, posY, specialType } = req.body;
     const maxCap = shape === 'round' ? 12 : 24;
     const minCap = shape === 'round' ? 1 : 6;
     const cap = Math.min(maxCap, Math.max(minCap, parseInt(capacity) || (shape === 'round' ? 8 : 10)));
@@ -24,6 +24,7 @@ exports.create = async (req, res, next) => {
         name,
         shape: shape || 'round',
         capacity: cap,
+        specialType: specialType || null,
         posX: posX || 100,
         posY: posY || 100,
         rotation: 0,

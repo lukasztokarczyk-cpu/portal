@@ -100,8 +100,9 @@ model TableLayout {
   weddingId String
   wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
   name      String
-  shape     String   @default("round") // round / rectangular
+  shape     String   @default("round")
   capacity  Int      @default(8)
+  specialType String? // 'couple' | 'dj' | 'photographer'
   posX      Float    @default(0)
   posY      Float    @default(0)
   rotation  Float    @default(0)
