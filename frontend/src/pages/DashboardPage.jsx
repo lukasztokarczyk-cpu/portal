@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import api from '../services/api';
 import { format, differenceInDays } from 'date-fns';
 import { pl } from 'date-fns/locale';
+import { useAuth } from '../store/AuthContext';
 
 function StatCard({ icon, label, value, sub, color = 'rose' }) {
   const colors = {
@@ -25,15 +26,58 @@ function StatCard({ icon, label, value, sub, color = 'rose' }) {
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [weddings, setWeddings] = useState([]);
+  const { user } = useAuth();
 
   useEffect(() => {
-    api.get('/weddings/my')
-      .then((res) => setData(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+    if (user?.role === 'couple') {
+      api.get('/weddings/my')
+        .then((res) => setData(res.data))
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    } else {
+      // admin/coordinator - pobierz listę wesel
+      api.get('/weddings')
+        .then((res) => setWeddings(res.data))
+        .catch(console.error)
+        .finally(() => setLoading(false));
+    }
+  }, [user]);
 
   if (loading) return <div className="text-center py-12 text-gray-400">Ładowanie...</div>;
+
+  // Admin/coordinator dashboard
+  if (user?.role !== 'couple') {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6">Dashboard</h1>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <StatCard icon="💍" label="Zarejestrowane wesela" value={weddings.length} color="rose" />
+          <StatCard icon="👥" label="Łącznie gości" value={weddings.reduce((s, w) => s + (w._count?.guests || 0), 0)} color="blue" />
+          <StatCard icon="📅" label="Najbliższe wesele" value={weddings.filter(w => new Date(w.weddingDate) > new Date()).length > 0 ? format(new Date(weddings.filter(w => new Date(w.weddingDate) > new Date()).sort((a,b) => new Date(a.weddingDate)-new Date(b.weddingDate))[0]?.weddingDate), 'dd.MM.yyyy') : 'Brak'} color="green" />
+        </div>
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4">Zarejestrowane wesela</h2>
+          {weddings.length === 0 ? (
+            <p className="text-gray-400 text-center py-8">Brak zarejestrowanych wesel. Dodaj pierwszą parę w panelu Zarządzanie.</p>
+          ) : (
+            <div className="space-y-3">
+              {weddings.map((w) => (
+                <div key={w.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div>
+                    <p className="font-medium text-gray-800">{w.brideName} i {w.groomName}</p>
+                    <p className="text-sm text-gray-500">📅 {format(new Date(w.weddingDate), 'dd MMMM yyyy', { locale: pl })}</p>
+                  </div>
+                  <span className="text-sm text-gray-500">{w._count?.guests || 0} gości</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (!data) return <div className="text-center py-12 text-gray-400">Nie znaleziono danych wesela.</div>;
 
   const { dashboard, weddingDate } = data;
