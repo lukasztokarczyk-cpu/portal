@@ -7,7 +7,7 @@ const { validate } = require('../middleware/validate');
 
 router.post(
   '/login',
-  [body('email').isEmail().normalizeEmail(), body('password').notEmpty()],
+  [body('login').notEmpty().trim(), body('password').notEmpty()],
   validate,
   authController.login
 );
@@ -17,7 +17,7 @@ router.post(
   authenticate,
   authorize('admin'),
   [
-    body('email').isEmail().normalizeEmail(),
+    body('login').notEmpty().trim(),
     body('password').isLength({ min: 8 }),
     body('name').notEmpty().trim(),
     body('weddingDate').isISO8601(),
@@ -28,7 +28,7 @@ router.post(
 
 router.post(
   '/forgot-password',
-  [body('email').isEmail().normalizeEmail()],
+  [body('login').notEmpty().trim()],
   validate,
   authController.forgotPassword
 );
