@@ -11,7 +11,7 @@ router.get('/wedding/:weddingId', authenticate, ctrl.getByWedding);
 router.post('/wedding/:weddingId', authenticate, [body('name').notEmpty().trim()], validate, ctrl.create);
 router.patch('/:id', authenticate, ctrl.update);
 router.patch('/:id/position', authenticate, ctrl.updatePosition);
-router.delete('/:id', authenticate, authorize('admin', 'coordinator'), ctrl.remove);
+router.delete('/:id', authenticate, ctrl.remove);
 router.post('/wedding/:weddingId/save-layout', authenticate, ctrl.saveLayout);
 
 // Goście przy stoliku
