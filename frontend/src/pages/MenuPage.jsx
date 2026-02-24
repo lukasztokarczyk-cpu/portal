@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../services/api';
 import toast from 'react-hot-toast';
 import { useAuth } from '../store/AuthContext';
@@ -30,11 +30,13 @@ export default function MenuPage() {
   const [weddings, setWeddings] = useState([]);
   const [selectedWeddingId, setSelectedWeddingId] = useState(null);
   const [menuData, setMenuData] = useState(null);
-  const [config, setConfig] = useState({ mainCourseMode: null, dessertChoice: null, locked: false });
+  const [config, setConfig] = useState({ mainCourseMode: null, dessertChoice: null, locked: false, cakeSource: null, cakeFlavors: '', sweetTableChoice: null, sweetTableAmount: '', guestPackageChoice: null, guestPackagePrice: '' });
   const [loading, setLoading] = useState(false);
   const [dishes, setDishes] = useState({});
   const [adminView, setAdminView] = useState('menu');
   const [newDish, setNewDish] = useState({ section: 'ZUPA', name: '', description: '' });
+  const [cakeImageUrl, setCakeImageUrl] = useState(null);
+  const cakeFileRef = useRef();
 
   useEffect(() => {
     if (isCouple) {
@@ -54,15 +56,36 @@ export default function MenuPage() {
     if (!selectedWeddingId) return;
     setLoading(true);
     api.get(`/menu/wedding/${selectedWeddingId}`)
-      .then(r => { setMenuData(r.data); setConfig(r.data.config); })
+      .then(r => {
+        setMenuData(r.data);
+        setConfig(prev => ({ ...prev, ...r.data.config }));
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
+    // Załaduj zdjęcie tortu
+    api.get(`/menu/wedding/${selectedWeddingId}/cake-image`)
+      .then(r => setCakeImageUrl(r.data.url))
+      .catch(() => setCakeImageUrl(null));
   }, [selectedWeddingId]);
 
   const refreshMenu = () => {
     api.get(`/menu/wedding/${selectedWeddingId}`).then(r => {
-      setMenuData(r.data); setConfig(r.data.config);
+      setMenuData(r.data); setConfig(prev => ({ ...prev, ...r.data.config }));
     });
+  };
+
+  const uploadCakeImage = async (file) => {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      await api.post(`/menu/wedding/${selectedWeddingId}/cake-image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const r = await api.get(`/menu/wedding/${selectedWeddingId}/cake-image`);
+      setCakeImageUrl(r.data.url);
+      toast.success('Zdjęcie tortu wgrane!');
+    } catch { toast.error('Błąd uploadu'); }
   };
 
   const updateConfig = async (updates) => {
@@ -253,19 +276,138 @@ export default function MenuPage() {
           </div>
         </div>
 
-        {/* DESER */}
+        {/* DESER / TORT */}
         <div className="card">
-          <h2 className="font-bold text-gray-800 text-lg mb-4">🍰 Deser</h2>
+          <h2 className="font-bold text-gray-800 text-lg mb-4">🍰 Deser / Tort</h2>
           <div className="flex gap-3 mb-4 flex-wrap">
             <ModeButton value="deser" current={config.dessertChoice} onClick={() => updateConfig({ dessertChoice: 'deser' })}>
               🍮 Deser z menu
             </ModeButton>
             <ModeButton value="tort" current={config.dessertChoice} onClick={() => updateConfig({ dessertChoice: 'tort' })}>
-              🎂 Tort
+              🎂 Tort weselny
             </ModeButton>
           </div>
           {config.dessertChoice === 'deser' && <DishSelect section="DESER" slotIndex={0} label="Wybór deseru" />}
-          {config.dessertChoice === 'tort' && <p className="text-rose-600 font-medium">🎂 Wybrano tort weselny</p>}
+          {config.dessertChoice === 'tort' && (
+            <div className="space-y-4">
+              <div className="flex gap-3 flex-wrap">
+                <ModeButton value="nas" current={config.cakeSource} onClick={() => updateConfig({ cakeSource: 'nas' })}>
+                  🏠 Tort od nas
+                </ModeButton>
+                <ModeButton value="zewnetrzna" current={config.cakeSource} onClick={() => updateConfig({ cakeSource: 'zewnetrzna' })}>
+                  🏢 Tort z firmy zewnętrznej
+                </ModeButton>
+              </div>
+              {config.cakeSource === 'nas' && (
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="label">Smak tortu</label>
+                    <input
+                      className="input w-full"
+                      placeholder="np. czekoladowy z malinami, waniliowy..."
+                      value={config.cakeFlavors || ''}
+                      onChange={e => setConfig(p => ({...p, cakeFlavors: e.target.value}))}
+                      onBlur={() => updateConfig({ cakeFlavors: config.cakeFlavors })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Zdjęcie tortu (inspiracja)</label>
+                    <input ref={cakeFileRef} type="file" accept="image/*" className="hidden" onChange={e => uploadCakeImage(e.target.files[0])} />
+                    <button onClick={() => cakeFileRef.current?.click()} className="btn-secondary text-sm">
+                      📷 {cakeImageUrl ? 'Zmień zdjęcie' : 'Wgraj zdjęcie'}
+                    </button>
+                    {cakeImageUrl && (
+                      <div className="mt-3">
+                        <img src={cakeImageUrl} alt="Tort" className="rounded-xl max-h-48 object-contain border border-gray-200" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {config.cakeSource === 'zewnetrzna' && (
+                <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 text-sm text-amber-800">
+                  ℹ️ Tort zostanie dostarczony z firmy zewnętrznej. Prosimy o poinformowanie koordynatora o szczegółach dostawy.
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* SŁODKI STÓŁ */}
+        <div className="card">
+          <h2 className="font-bold text-gray-800 text-lg mb-4">🍬 Słodki stół</h2>
+          <div className="flex gap-3 mb-4 flex-wrap">
+            <ModeButton value="nas" current={config.sweetTableChoice} onClick={() => updateConfig({ sweetTableChoice: 'nas' })}>
+              🏠 Zamawiamy u Was
+            </ModeButton>
+            <ModeButton value="zewnetrzna" current={config.sweetTableChoice} onClick={() => updateConfig({ sweetTableChoice: 'zewnetrzna' })}>
+              🏢 Firma zewnętrzna
+            </ModeButton>
+            <ModeButton value="rezygnuje" current={config.sweetTableChoice} onClick={() => updateConfig({ sweetTableChoice: 'rezygnuje' })}>
+              ❌ Rezygnujemy
+            </ModeButton>
+          </div>
+          {config.sweetTableChoice === 'nas' && (
+            <div className="pt-2">
+              <label className="label">Kwota za słodki stół (zł)</label>
+              {isAdmin ? (
+                <input
+                  type="number"
+                  className="input w-48"
+                  placeholder="np. 1500"
+                  value={config.sweetTableAmount || ''}
+                  onChange={e => setConfig(p => ({...p, sweetTableAmount: e.target.value}))}
+                  onBlur={() => updateConfig({ sweetTableAmount: config.sweetTableAmount })}
+                />
+              ) : (
+                <p className="text-gray-700 font-semibold">
+                  {config.sweetTableAmount ? `${parseFloat(config.sweetTableAmount).toFixed(2)} zł` : 'Kwota zostanie ustalona z koordynatorem'}
+                </p>
+              )}
+            </div>
+          )}
+          {config.sweetTableChoice === 'zewnetrzna' && (
+            <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-sm text-blue-800">
+              ℹ️ Słodki stół z firmy zewnętrznej — prosimy o kontakt z koordynatorem.
+            </div>
+          )}
+          {config.sweetTableChoice === 'rezygnuje' && (
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-600">
+              Zrezygnowano ze słodkiego stołu.
+            </div>
+          )}
+        </div>
+
+        {/* PACZKI DLA GOŚCI */}
+        <div className="card">
+          <h2 className="font-bold text-gray-800 text-lg mb-4">🎁 Paczki dla gości (ciasto)</h2>
+          <div className="flex gap-3 mb-4 flex-wrap">
+            <ModeButton value="tak" current={config.guestPackageChoice} onClick={() => updateConfig({ guestPackageChoice: 'tak' })}>
+              ✅ Tak, zamawiamy
+            </ModeButton>
+            <ModeButton value="nie" current={config.guestPackageChoice} onClick={() => updateConfig({ guestPackageChoice: 'nie' })}>
+              ❌ Nie, dziękujemy
+            </ModeButton>
+          </div>
+          {config.guestPackageChoice === 'tak' && (
+            <div className="pt-2">
+              <label className="label">Cena za paczkę (zł / os.)</label>
+              {isAdmin ? (
+                <input
+                  type="number"
+                  className="input w-48"
+                  placeholder="np. 25"
+                  value={config.guestPackagePrice || ''}
+                  onChange={e => setConfig(p => ({...p, guestPackagePrice: e.target.value}))}
+                  onBlur={() => updateConfig({ guestPackagePrice: config.guestPackagePrice })}
+                />
+              ) : (
+                <p className="text-gray-700 font-semibold">
+                  {config.guestPackagePrice ? `${parseFloat(config.guestPackagePrice).toFixed(2)} zł / os.` : 'Cena zostanie ustalona z koordynatorem'}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 1. CIEPŁE DANIE */}

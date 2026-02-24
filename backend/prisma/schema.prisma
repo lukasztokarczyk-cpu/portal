@@ -178,6 +178,20 @@ model WeddingMenuConfig {
   mainCourseMode String?  // 'polmisek' | 'talerz'
   dessertChoice  String?  // 'deser' | 'tort'
   locked         Boolean  @default(false)
+
+  // Tort
+  cakeSource     String?  // 'nas' | 'zewnetrzna' | null
+  cakeFlavors    String?  // opis smaku (wolny tekst)
+  cakeImagePath  String?  // ścieżka do zdjęcia w Supabase
+
+  // Słodki stół
+  sweetTableChoice String? // 'nas' | 'zewnetrzna' | 'rezygnuje' | null
+  sweetTableAmount Decimal? @db.Decimal(10,2) // kwota jeśli u nas
+
+  // Paczki dla gości
+  guestPackageChoice String? // 'tak' | 'nie' | null
+  guestPackagePrice  Decimal? @db.Decimal(10,2) // cena za paczkę (ustawia admin)
+
   updatedAt      DateTime @updatedAt
 }
 

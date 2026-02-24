@@ -85,16 +85,31 @@ exports.getWeddingMenu = async (req, res, next) => {
 exports.updateConfig = async (req, res, next) => {
   try {
     const { weddingId } = req.params;
-    const { mainCourseMode, dessertChoice, locked } = req.body;
+    const {
+      mainCourseMode, dessertChoice, locked,
+      cakeSource, cakeFlavors,
+      sweetTableChoice, sweetTableAmount,
+      guestPackageChoice, guestPackagePrice,
+    } = req.body;
+
+    const data = {
+      ...(mainCourseMode !== undefined && { mainCourseMode }),
+      ...(dessertChoice !== undefined && { dessertChoice }),
+      ...(locked !== undefined && { locked }),
+      ...(cakeSource !== undefined && { cakeSource }),
+      ...(cakeFlavors !== undefined && { cakeFlavors }),
+      ...(sweetTableChoice !== undefined && { sweetTableChoice }),
+      ...(sweetTableAmount !== undefined && { sweetTableAmount: sweetTableAmount ? parseFloat(sweetTableAmount) : null }),
+      ...(guestPackageChoice !== undefined && { guestPackageChoice }),
+      ...(guestPackagePrice !== undefined && { guestPackagePrice: guestPackagePrice ? parseFloat(guestPackagePrice) : null }),
+    };
+
     const config = await prisma.weddingMenuConfig.upsert({
       where: { weddingId },
-      create: { weddingId, mainCourseMode, dessertChoice, locked: locked ?? false },
-      update: {
-        ...(mainCourseMode !== undefined && { mainCourseMode }),
-        ...(dessertChoice !== undefined && { dessertChoice }),
-        ...(locked !== undefined && { locked }),
-      },
+      create: { weddingId, ...data },
+      update: data,
     });
+
     if (mainCourseMode !== undefined) {
       await prisma.weddingMenuSelection.deleteMany({
         where: { weddingId, section: 'DANIE_GLOWNE' },
@@ -126,5 +141,31 @@ exports.selectDish = async (req, res, next) => {
       include: { dish: true },
     });
     res.json({ action: 'selected', selection });
+  } catch (err) { next(err); }
+};
+
+exports.uploadCakeImage = async (req, res, next) => {
+  try {
+    const { weddingId } = req.params;
+    if (!req.file) return res.status(400).json({ error: 'Brak pliku' });
+    const { uploadFile } = require('../utils/supabaseStorage');
+    const path = await uploadFile(req.file.buffer, 'documents', req.file.originalname, req.file.mimetype);
+    await prisma.weddingMenuConfig.upsert({
+      where: { weddingId },
+      create: { weddingId, cakeImagePath: path },
+      update: { cakeImagePath: path },
+    });
+    res.json({ path });
+  } catch (err) { next(err); }
+};
+
+exports.getCakeImageUrl = async (req, res, next) => {
+  try {
+    const { weddingId } = req.params;
+    const config = await prisma.weddingMenuConfig.findUnique({ where: { weddingId } });
+    if (!config?.cakeImagePath) return res.json({ url: null });
+    const { getSignedUrl } = require('../utils/supabaseStorage');
+    const url = await getSignedUrl('documents', config.cakeImagePath, 3600);
+    res.json({ url });
   } catch (err) { next(err); }
 };

@@ -13,4 +13,10 @@ router.get('/wedding/:weddingId', authenticate, ctrl.getWeddingMenu);
 router.patch('/wedding/:weddingId/config', authenticate, ctrl.updateConfig);
 router.post('/wedding/:weddingId/select', authenticate, ctrl.selectDish);
 
+// Zdjęcie tortu
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+router.post('/wedding/:weddingId/cake-image', authenticate, upload.single('file'), ctrl.uploadCakeImage);
+router.get('/wedding/:weddingId/cake-image', authenticate, ctrl.getCakeImageUrl);
+
 module.exports = router;
