@@ -15,9 +15,10 @@ const SPECIAL_RECT_TYPES = [
 
 function TableShape({ table, selected, onSelect, onDragStart }) {
   const isRound = table.shape === 'round';
-  // Okrągły: 210cm → ~84px średnica; Prostokątny: 140x90cm → ~112x72px
-  const W = isRound ? 84 : 112;
-  const H = isRound ? 84 : 72;
+  const rotated = (table.rotation || 0) === 90;
+  // Okrągły: 210cm ~84px; Prostokątny: 140x90cm ~112x72px (obrócony: 72x112px)
+  const W = isRound ? 84 : (rotated ? 72 : 112);
+  const H = isRound ? 84 : (rotated ? 112 : 72);
   const filled = table.guests?.length || 0;
   const pct = filled / table.capacity;
   const fillColor = pct >= 1 ? '#fca5a5' : pct > 0.7 ? '#fde68a' : '#d1fae5';
@@ -32,7 +33,7 @@ function TableShape({ table, selected, onSelect, onDragStart }) {
       onMouseDown={(e) => onDragStart(e, table)}
     >
       {isRound ? (
-        <circle cx={45} cy={45} r={44} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
+        <circle cx={42} cy={42} r={42} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
       ) : (
         <rect width={W} height={H} rx={8} fill={fillColor} stroke={strokeColor} strokeWidth={strokeWidth} />
       )}
@@ -42,6 +43,11 @@ function TableShape({ table, selected, onSelect, onDragStart }) {
       <text x={W/2} y={H/2 + 9} textAnchor="middle" fontSize="9" fill="#6b7280">
         {filled}/{table.capacity} os.
       </text>
+      {!isRound && (
+        <text x={W/2} y={H - 6} textAnchor="middle" fontSize="8" fill="#9ca3af">
+          {rotated ? '↕' : '↔'}
+        </text>
+      )}
     </g>
   );
 }
@@ -243,6 +249,15 @@ export default function TablesPage() {
     } catch { toast.error('Błąd'); }
   };
 
+  const rotateTable = async (table) => {
+    if (table.shape === 'round') return;
+    const newRotation = (table.rotation || 0) === 0 ? 90 : 0;
+    try {
+      await api.patch(`/tables/${table.id}/position`, { posX: table.posX, posY: table.posY, rotation: newRotation });
+      refresh();
+    } catch { toast.error('Błąd rotacji'); }
+  };
+
   const selectedTable = selected ? tables.find(t => t.id === selected.id) : null;
   const unassignedGuests = guests.filter(g => !g.tableId);
   const assignedGuests = guests.filter(g => g.tableId).length;
@@ -438,6 +453,11 @@ export default function TablesPage() {
                   </div>
                   <div className="flex gap-2">
                     {isAdmin && <button onClick={() => setEditTable({ ...selectedTable })} className="text-gray-400 hover:text-gray-600">✏️</button>}
+                    {selectedTable.shape !== 'round' && (
+                      <button onClick={() => rotateTable(selectedTable)} className="text-blue-400 hover:text-blue-600" title="Obróć stolik">
+                        {(selectedTable.rotation || 0) === 0 ? '↕' : '↔'}
+                      </button>
+                    )}
                     <button onClick={() => deleteTable(selectedTable.id)} className="text-red-400 hover:text-red-600" title="Usuń stolik">🗑️</button>
                   </div>
                 </div>
