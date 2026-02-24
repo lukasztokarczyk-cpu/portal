@@ -255,9 +255,11 @@ model AccommodationConfig {
   id            String   @id @default(uuid())
   weddingId     String   @unique
   wedding       Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
-  wantsStay     Boolean? // null = nie wybrano, true = tak, false = nie
+  wantsStay     Boolean?
   updatedAt     DateTime @updatedAt
 }
+
+model PasswordReset {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
