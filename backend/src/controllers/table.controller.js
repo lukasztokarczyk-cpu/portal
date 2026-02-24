@@ -126,24 +126,34 @@ exports.assignGuest = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-// Upload rzutu sali
+// Upload rzutu sali (globalny dla całego obiektu)
 exports.uploadFloorPlan = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Brak pliku' });
+    const { uploadFile } = require('../utils/supabaseStorage');
     const path = await uploadFile(req.file.buffer, 'documents', req.file.originalname, req.file.mimetype);
+    // Zapisz ścieżkę w specjalnym rekordzie - używamy weddingId jako klucza ale URL jest globalny
     await prisma.wedding.update({
       where: { id: req.params.weddingId },
+      data: { floorPlan: path },
+    });
+    // Ustaw ten sam rzut dla wszystkich wesel
+    await prisma.wedding.updateMany({
       data: { floorPlan: path },
     });
     res.json({ path });
   } catch (err) { next(err); }
 };
 
-// Pobierz URL rzutu sali
+// Pobierz URL rzutu sali (globalny)
 exports.getFloorPlan = async (req, res, next) => {
   try {
-    const wedding = await prisma.wedding.findUnique({ where: { id: req.params.weddingId } });
+    // Pobierz rzut z dowolnego wesela (globalny)
+    const wedding = await prisma.wedding.findFirst({
+      where: { floorPlan: { not: null } },
+    });
     if (!wedding?.floorPlan) return res.json({ url: null });
+    const { getSignedUrl } = require('../utils/supabaseStorage');
     const url = await getSignedUrl('documents', wedding.floorPlan, 3600);
     res.json({ url });
   } catch (err) { next(err); }
