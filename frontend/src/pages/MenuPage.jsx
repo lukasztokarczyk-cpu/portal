@@ -333,83 +333,6 @@ export default function MenuPage() {
           )}
         </div>
 
-        {/* SŁODKI STÓŁ */}
-        <div className="card">
-          <h2 className="font-bold text-gray-800 text-lg mb-4">🍬 Słodki stół</h2>
-          <div className="flex gap-3 mb-4 flex-wrap">
-            <ModeButton value="nas" current={config.sweetTableChoice} onClick={() => updateConfig({ sweetTableChoice: 'nas' })}>
-              🏠 Zamawiamy u Was
-            </ModeButton>
-            <ModeButton value="zewnetrzna" current={config.sweetTableChoice} onClick={() => updateConfig({ sweetTableChoice: 'zewnetrzna' })}>
-              🏢 Firma zewnętrzna
-            </ModeButton>
-            <ModeButton value="rezygnuje" current={config.sweetTableChoice} onClick={() => updateConfig({ sweetTableChoice: 'rezygnuje' })}>
-              ❌ Rezygnujemy
-            </ModeButton>
-          </div>
-          {config.sweetTableChoice === 'nas' && (
-            <div className="pt-2">
-              <label className="label">Kwota za słodki stół (zł)</label>
-              {isAdmin ? (
-                <input
-                  type="number"
-                  className="input w-48"
-                  placeholder="np. 1500"
-                  value={config.sweetTableAmount || ''}
-                  onChange={e => setConfig(p => ({...p, sweetTableAmount: e.target.value}))}
-                  onBlur={() => updateConfig({ sweetTableAmount: config.sweetTableAmount })}
-                />
-              ) : (
-                <p className="text-gray-700 font-semibold">
-                  {config.sweetTableAmount ? `${parseFloat(config.sweetTableAmount).toFixed(2)} zł` : 'Kwota zostanie ustalona z koordynatorem'}
-                </p>
-              )}
-            </div>
-          )}
-          {config.sweetTableChoice === 'zewnetrzna' && (
-            <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-sm text-blue-800">
-              ℹ️ Słodki stół z firmy zewnętrznej — prosimy o kontakt z koordynatorem.
-            </div>
-          )}
-          {config.sweetTableChoice === 'rezygnuje' && (
-            <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-600">
-              Zrezygnowano ze słodkiego stołu.
-            </div>
-          )}
-        </div>
-
-        {/* PACZKI DLA GOŚCI */}
-        <div className="card">
-          <h2 className="font-bold text-gray-800 text-lg mb-4">🎁 Paczki dla gości (ciasto)</h2>
-          <div className="flex gap-3 mb-4 flex-wrap">
-            <ModeButton value="tak" current={config.guestPackageChoice} onClick={() => updateConfig({ guestPackageChoice: 'tak' })}>
-              ✅ Tak, zamawiamy
-            </ModeButton>
-            <ModeButton value="nie" current={config.guestPackageChoice} onClick={() => updateConfig({ guestPackageChoice: 'nie' })}>
-              ❌ Nie, dziękujemy
-            </ModeButton>
-          </div>
-          {config.guestPackageChoice === 'tak' && (
-            <div className="pt-2">
-              <label className="label">Cena za paczkę (zł / os.)</label>
-              {isAdmin ? (
-                <input
-                  type="number"
-                  className="input w-48"
-                  placeholder="np. 25"
-                  value={config.guestPackagePrice || ''}
-                  onChange={e => setConfig(p => ({...p, guestPackagePrice: e.target.value}))}
-                  onBlur={() => updateConfig({ guestPackagePrice: config.guestPackagePrice })}
-                />
-              ) : (
-                <p className="text-gray-700 font-semibold">
-                  {config.guestPackagePrice ? `${parseFloat(config.guestPackagePrice).toFixed(2)} zł / os.` : 'Cena zostanie ustalona z koordynatorem'}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-
         {/* 1. CIEPŁE DANIE */}
         <div className="card">
           <h2 className="font-bold text-gray-800 text-lg mb-4">🍛 1. ciepłe danie</h2>
@@ -467,6 +390,91 @@ export default function MenuPage() {
           <h2 className="font-bold text-gray-800 text-lg mb-4">🥙 Sałatki (2 opcje)</h2>
           <DishSelect section="SALATKI" slotIndex={0} label="Sałatka 1" />
           <DishSelect section="SALATKI" slotIndex={1} label="Sałatka 2" />
+        </div>
+
+        {/* SŁODKI STÓŁ */}
+        <div className="card border-t-4 border-pink-200">
+          <h2 className="font-bold text-gray-800 text-lg mb-4">🍬 Słodki stół</h2>
+          <div className="flex gap-3 mb-4 flex-wrap">
+            <ModeButton value="nas" current={config.sweetTableChoice} onClick={() => updateConfig({ sweetTableChoice: 'nas' })}>
+              🏠 Zamawiamy u Was
+            </ModeButton>
+            <ModeButton value="zewnetrzna" current={config.sweetTableChoice} onClick={() => updateConfig({ sweetTableChoice: 'zewnetrzna' })}>
+              🏢 Firma zewnętrzna
+            </ModeButton>
+            <ModeButton value="rezygnuje" current={config.sweetTableChoice} onClick={() => updateConfig({ sweetTableChoice: 'rezygnuje' })}>
+              ❌ Rezygnujemy
+            </ModeButton>
+          </div>
+          {config.sweetTableChoice === 'nas' && (
+            <div className="pt-2">
+              <label className="label">Kwota za słodki stół (zł)</label>
+              {isAdmin ? (
+                <input
+                  type="number"
+                  className="input w-48"
+                  placeholder="np. 1500"
+                  value={config.sweetTableAmount || ''}
+                  onChange={e => setConfig(p => ({...p, sweetTableAmount: e.target.value}))}
+                  onBlur={() => updateConfig({ sweetTableAmount: config.sweetTableAmount })}
+                />
+              ) : (
+                <p className="text-gray-700 font-semibold">
+                  {config.sweetTableAmount ? `${parseFloat(config.sweetTableAmount).toFixed(2)} zł` : 'Kwota zostanie ustalona z koordynatorem'}
+                </p>
+              )}
+            </div>
+          )}
+          {config.sweetTableChoice === 'zewnetrzna' && (
+            <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-sm text-blue-800">
+              ℹ️ Słodki stół z firmy zewnętrznej — prosimy o kontakt z koordynatorem w celu ustalenia szczegółów.
+            </div>
+          )}
+          {config.sweetTableChoice === 'rezygnuje' && (
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-600">
+              Zrezygnowano ze słodkiego stołu.
+            </div>
+          )}
+        </div>
+
+        {/* PACZKI DLA GOŚCI */}
+        <div className="card border-t-4 border-amber-200">
+          <h2 className="font-bold text-gray-800 text-lg mb-4">🎁 Paczki dla gości (ciasto)</h2>
+          <div className="flex gap-3 mb-4 flex-wrap">
+            <ModeButton value="nas" current={config.guestPackageChoice} onClick={() => updateConfig({ guestPackageChoice: 'nas' })}>
+              🏠 Zamawiamy u Was
+            </ModeButton>
+            <ModeButton value="zewnetrzna" current={config.guestPackageChoice} onClick={() => updateConfig({ guestPackageChoice: 'zewnetrzna' })}>
+              🏢 Firma zewnętrzna
+            </ModeButton>
+            <ModeButton value="nie" current={config.guestPackageChoice} onClick={() => updateConfig({ guestPackageChoice: 'nie' })}>
+              ❌ Nie, dziękujemy
+            </ModeButton>
+          </div>
+          {config.guestPackageChoice === 'nas' && (
+            <div className="pt-2">
+              <label className="label">Cena za paczkę (zł / os.)</label>
+              {isAdmin ? (
+                <input
+                  type="number"
+                  className="input w-48"
+                  placeholder="np. 25"
+                  value={config.guestPackagePrice || ''}
+                  onChange={e => setConfig(p => ({...p, guestPackagePrice: e.target.value}))}
+                  onBlur={() => updateConfig({ guestPackagePrice: config.guestPackagePrice })}
+                />
+              ) : (
+                <p className="text-gray-700 font-semibold">
+                  {config.guestPackagePrice ? `${parseFloat(config.guestPackagePrice).toFixed(2)} zł / os.` : 'Cena zostanie ustalona z koordynatorem'}
+                </p>
+              )}
+            </div>
+          )}
+          {config.guestPackageChoice === 'zewnetrzna' && (
+            <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-sm text-blue-800">
+              ℹ️ Paczki dla gości z firmy zewnętrznej — prosimy o kontakt z koordynatorem.
+            </div>
+          )}
         </div>
 
       </>)}
