@@ -89,7 +89,7 @@ exports.updateConfig = async (req, res, next) => {
       mainCourseMode, dessertChoice, locked,
       cakeSource, cakeFlavors,
       sweetTableChoice, sweetTableAmount,
-      guestPackageChoice, guestPackagePrice,
+      guestPackageChoice, guestPackagePrice, guestPackageCount,
     } = req.body;
 
     const data = {
@@ -102,6 +102,7 @@ exports.updateConfig = async (req, res, next) => {
       ...(sweetTableAmount !== undefined && { sweetTableAmount: sweetTableAmount ? parseFloat(sweetTableAmount) : null }),
       ...(guestPackageChoice !== undefined && { guestPackageChoice }),
       ...(guestPackagePrice !== undefined && { guestPackagePrice: guestPackagePrice ? parseFloat(guestPackagePrice) : null }),
+      ...(guestPackageCount !== undefined && { guestPackageCount: guestPackageCount ? parseInt(guestPackageCount) : null }),
     };
 
     const config = await prisma.weddingMenuConfig.upsert({

@@ -189,8 +189,9 @@ model WeddingMenuConfig {
   sweetTableAmount Decimal? @db.Decimal(10,2) // kwota jeśli u nas
 
   // Paczki dla gości
-  guestPackageChoice String? // 'tak' | 'nie' | null
-  guestPackagePrice  Decimal? @db.Decimal(10,2) // cena za paczkę (ustawia admin)
+  guestPackageChoice String? // 'nas' | 'zewnetrzna' | 'nie'
+  guestPackagePrice  Decimal? @db.Decimal(10,2)
+  guestPackageCount  Int?     // liczba paczek
 
   updatedAt      DateTime @updatedAt
 }

@@ -346,8 +346,47 @@ export default function MenuPage() {
         {/* MIĘDZY 1 A 2: odwrotny deser/tort */}
         {config.dessertChoice === 'deser' && (
           <div className="card border-2 border-amber-100 bg-amber-50">
-            <h2 className="font-bold text-gray-800 text-lg mb-1">🎂 Tort weselny</h2>
-            <p className="text-gray-500 text-sm">Serwowany między daniami wieczorowymi</p>
+            <h2 className="font-bold text-gray-800 text-lg mb-3">🎂 Tort weselny</h2>
+            <p className="text-gray-500 text-sm mb-4">Serwowany między daniami wieczorowymi</p>
+            <div className="flex gap-3 flex-wrap mb-4">
+              <ModeButton value="nas" current={config.cakeSource} onClick={() => updateConfig({ cakeSource: 'nas' })}>
+                🏠 Tort od nas
+              </ModeButton>
+              <ModeButton value="zewnetrzna" current={config.cakeSource} onClick={() => updateConfig({ cakeSource: 'zewnetrzna' })}>
+                🏢 Tort z firmy zewnętrznej
+              </ModeButton>
+            </div>
+            {config.cakeSource === 'nas' && (
+              <div className="space-y-3">
+                <div>
+                  <label className="label">Smak tortu</label>
+                  <input
+                    className="input w-full"
+                    placeholder="np. czekoladowy z malinami, waniliowy..."
+                    value={config.cakeFlavors || ''}
+                    onChange={e => setConfig(p => ({...p, cakeFlavors: e.target.value}))}
+                    onBlur={() => updateConfig({ cakeFlavors: config.cakeFlavors })}
+                  />
+                </div>
+                <div>
+                  <label className="label">Zdjęcie tortu (inspiracja)</label>
+                  <input ref={cakeFileRef} type="file" accept="image/*" className="hidden" onChange={e => uploadCakeImage(e.target.files[0])} />
+                  <button onClick={() => cakeFileRef.current?.click()} className="btn-secondary text-sm">
+                    📷 {cakeImageUrl ? 'Zmień zdjęcie' : 'Wgraj zdjęcie'}
+                  </button>
+                  {cakeImageUrl && (
+                    <div className="mt-3">
+                      <img src={cakeImageUrl} alt="Tort" className="rounded-xl max-h-48 object-contain border border-gray-200" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            {config.cakeSource === 'zewnetrzna' && (
+              <div className="p-3 bg-amber-100 rounded-xl text-sm text-amber-900">
+                ℹ️ Tort zostanie dostarczony z firmy zewnętrznej. Prosimy o poinformowanie koordynatora o szczegółach dostawy.
+              </div>
+            )}
           </div>
         )}
         {config.dessertChoice === 'tort' && (
@@ -452,22 +491,37 @@ export default function MenuPage() {
             </ModeButton>
           </div>
           {config.guestPackageChoice === 'nas' && (
-            <div className="pt-2">
-              <label className="label">Cena za paczkę (zł / os.)</label>
-              {isAdmin ? (
+            <div className="space-y-3 pt-2">
+              <div>
+                <label className="label">Cena za paczkę (zł / os.)</label>
+                {isAdmin ? (
+                  <input
+                    type="number"
+                    className="input w-48"
+                    placeholder="np. 25"
+                    value={config.guestPackagePrice || ''}
+                    onChange={e => setConfig(p => ({...p, guestPackagePrice: e.target.value}))}
+                    onBlur={() => updateConfig({ guestPackagePrice: config.guestPackagePrice })}
+                  />
+                ) : (
+                  <p className="text-gray-700 font-semibold">
+                    {config.guestPackagePrice ? `${parseFloat(config.guestPackagePrice).toFixed(2)} zł / os.` : 'Cena zostanie ustalona z koordynatorem'}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="label">Liczba paczek</label>
+                <p className="text-xs text-gray-400 mb-1">💡 Zazwyczaj 1 paczka na zaproszenie (1 na parę / rodzinę)</p>
                 <input
                   type="number"
                   className="input w-48"
-                  placeholder="np. 25"
-                  value={config.guestPackagePrice || ''}
-                  onChange={e => setConfig(p => ({...p, guestPackagePrice: e.target.value}))}
-                  onBlur={() => updateConfig({ guestPackagePrice: config.guestPackagePrice })}
+                  placeholder="np. 80"
+                  min={1}
+                  value={config.guestPackageCount || ''}
+                  onChange={e => setConfig(p => ({...p, guestPackageCount: e.target.value}))}
+                  onBlur={() => updateConfig({ guestPackageCount: config.guestPackageCount ? parseInt(config.guestPackageCount) : null })}
                 />
-              ) : (
-                <p className="text-gray-700 font-semibold">
-                  {config.guestPackagePrice ? `${parseFloat(config.guestPackagePrice).toFixed(2)} zł / os.` : 'Cena zostanie ustalona z koordynatorem'}
-                </p>
-              )}
+              </div>
             </div>
           )}
           {config.guestPackageChoice === 'zewnetrzna' && (
