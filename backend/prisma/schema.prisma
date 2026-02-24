@@ -63,6 +63,8 @@ model Wedding {
   messages  Message[]
   menuSelections WeddingMenuSelection[]
   menuConfig     WeddingMenuConfig?
+  roomBookings   RoomBooking[]
+  accommodationConfig AccommodationConfig?
 }
 
 model Stage {
@@ -219,7 +221,43 @@ model Message {
   createdAt  DateTime @default(now())
 }
 
-model PasswordReset {
+// Pokoje hotelowe (admin zarządza)
+model Room {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  capacity    Int      @default(2)
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  bookings    RoomBooking[]
+}
+
+// Rezerwacje noclegów
+model RoomBooking {
+  id          String   @id @default(uuid())
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  weddingId   String
+  wedding     Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  checkIn     DateTime
+  checkOut    DateTime
+  guestCount  Int      @default(2)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([roomId, checkIn])
+}
+
+// Ustawienia noclegów dla wesela
+model AccommodationConfig {
+  id            String   @id @default(uuid())
+  weddingId     String   @unique
+  wedding       Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  wantsStay     Boolean? // null = nie wybrano, true = tak, false = nie
+  updatedAt     DateTime @updatedAt
+}
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
