@@ -76,19 +76,31 @@ function StageModal({ stage, weddingId, onClose, onSaved }) {
 
 export default function StagesPage() {
   const { user } = useAuth();
-  const [wedding, setWedding] = useState(null);
-  const [stages, setStages] = useState([]);
-  const [modal, setModal] = useState(null); // null | 'new' | stage object
+  const isCouple = user?.role === 'couple';
   const canEdit = user?.role !== 'couple';
 
-  useEffect(() => {
-    api.get('/weddings/my').then((res) => {
-      setWedding(res.data);
-      return api.get(`/stages/wedding/${res.data.id}`);
-    }).then((res) => setStages(res.data)).catch(console.error);
-  }, []);
+  const [weddingId, setWeddingId] = useState(null);
+  const [weddings, setWeddings] = useState([]);
+  const [stages, setStages] = useState([]);
+  const [modal, setModal] = useState(null);
 
-  const refresh = () => api.get(`/stages/wedding/${wedding.id}`).then((res) => setStages(res.data));
+  useEffect(() => {
+    if (isCouple) {
+      api.get('/weddings/my').then(r => setWeddingId(r.data.id)).catch(console.error);
+    } else {
+      api.get('/weddings').then(r => {
+        setWeddings(r.data);
+        if (r.data[0]) setWeddingId(r.data[0].id);
+      }).catch(console.error);
+    }
+  }, [isCouple]);
+
+  const refresh = () => {
+    if (!weddingId) return;
+    api.get(`/stages/wedding/${weddingId}`).then(r => setStages(r.data)).catch(console.error);
+  };
+
+  useEffect(() => { refresh(); }, [weddingId]);
 
   const handleDelete = async (id) => {
     if (!confirm('Usunąć etap?')) return;
@@ -101,9 +113,16 @@ export default function StagesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold text-gray-800">Harmonogram przygotowań</h1>
-        {canEdit && <button onClick={() => setModal('new')} className="btn-primary">+ Dodaj etap</button>}
+        <div className="flex items-center gap-3 flex-wrap">
+          {!isCouple && weddings.length > 1 && (
+            <select className="input w-auto" value={weddingId || ''} onChange={e => setWeddingId(e.target.value)}>
+              {weddings.map(w => <option key={w.id} value={w.id}>{w.couple?.name || w.couple?.login}</option>)}
+            </select>
+          )}
+          {canEdit && <button onClick={() => setModal('new')} className="btn-primary">+ Dodaj etap</button>}
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -132,7 +151,7 @@ export default function StagesPage() {
       {modal && (
         <StageModal
           stage={modal === 'new' ? null : modal}
-          weddingId={wedding?.id}
+          weddingId={weddingId}
           onClose={() => setModal(null)}
           onSaved={() => { setModal(null); refresh(); }}
         />
