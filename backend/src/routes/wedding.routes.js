@@ -17,4 +17,6 @@ router.patch(
   ctrl.update
 );
 
+router.delete('/:id', authenticate, authorize('admin'), ctrl.remove);
+
 module.exports = router;

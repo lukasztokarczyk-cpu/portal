@@ -97,17 +97,53 @@ exports.getOne = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { weddingDate, guestCount, coordinatorId } = req.body;
+    const { weddingDate, guestCount, coordinatorId, coupleName, coupleLogin, couplePassword } = req.body;
+
+    // Zaktualizuj dane wesela
     const wedding = await prisma.wedding.update({
       where: { id: req.params.id },
       data: {
         ...(weddingDate && { weddingDate: new Date(weddingDate) }),
         ...(guestCount !== undefined && { guestCount }),
-        ...(coordinatorId !== undefined && { coordinatorId }),
+        ...(coordinatorId !== undefined && { coordinatorId: coordinatorId || null }),
+      },
+      include: { couple: { select: { id: true, name: true, login: true, email: true } } },
+    });
+
+    // Zaktualizuj dane pary (użytkownika)
+    if (coupleName || coupleLogin || couplePassword) {
+      const bcrypt = require('bcryptjs');
+      const userData = {};
+      if (coupleName) userData.name = coupleName;
+      if (coupleLogin) {
+        const existing = await prisma.user.findFirst({ where: { login: coupleLogin, NOT: { id: wedding.coupleId } } });
+        if (existing) return res.status(409).json({ error: 'Login już zajęty' });
+        userData.login = coupleLogin;
+      }
+      if (couplePassword) userData.password = await bcrypt.hash(couplePassword, 12);
+      await prisma.user.update({ where: { id: wedding.coupleId }, data: userData });
+    }
+
+    // Zwróć zaktualizowane dane
+    const updated = await prisma.wedding.findUnique({
+      where: { id: req.params.id },
+      include: {
+        couple: { select: { id: true, name: true, login: true, email: true } },
+        coordinator: { select: { id: true, name: true } },
       },
     });
-    res.json(wedding);
-  } catch (err) {
-    next(err);
-  }
+    res.json(updated);
+  } catch (err) { next(err); }
+};
+
+exports.remove = async (req, res, next) => {
+  try {
+    const wedding = await prisma.wedding.findUnique({ where: { id: req.params.id } });
+    if (!wedding) return res.status(404).json({ error: 'Wesele nie znalezione' });
+    // Cascade delete działa przez Prisma schema (onDelete: Cascade)
+    await prisma.wedding.delete({ where: { id: req.params.id } });
+    // Usuń też konto pary
+    await prisma.user.delete({ where: { id: wedding.coupleId } });
+    res.status(204).send();
+  } catch (err) { next(err); }
 };
