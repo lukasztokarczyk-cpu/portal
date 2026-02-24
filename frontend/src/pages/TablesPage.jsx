@@ -15,8 +15,9 @@ const SPECIAL_RECT_TYPES = [
 
 function TableShape({ table, selected, onSelect, onDragStart }) {
   const isRound = table.shape === 'round';
-  const W = isRound ? 90 : 140;
-  const H = isRound ? 90 : 70;
+  // Okrągły: 210cm → ~84px średnica; Prostokątny: 140x90cm → ~112x72px
+  const W = isRound ? 84 : 112;
+  const H = isRound ? 84 : 72;
   const filled = table.guests?.length || 0;
   const pct = filled / table.capacity;
   const fillColor = pct >= 1 ? '#fca5a5' : pct > 0.7 ? '#fde68a' : '#d1fae5';
@@ -125,8 +126,10 @@ export default function TablesPage() {
 
     const onMove = (ev) => {
       if (!dragging.current) return;
-      const x = Math.max(0, Math.min(CANVAS_W - 150, ev.clientX - svg.left - startX));
-      const y = Math.max(0, Math.min(CANVAS_H - 100, ev.clientY - svg.top - startY));
+      const tableWidth = 150;
+      const tableHeight = 100;
+      const x = Math.max(0, Math.min(CANVAS_W - tableWidth, ev.clientX - svg.left - startX));
+      const y = Math.max(0, Math.min(CANVAS_H - tableHeight, ev.clientY - svg.top - startY));
       positionsRef.current[dragging.current.id] = { posX: x, posY: y };
       setTables(prev => prev.map(t => t.id === dragging.current?.id ? { ...t, posX: x, posY: y } : t));
     };
@@ -372,9 +375,7 @@ export default function TablesPage() {
             viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}
             className="block w-full"
             style={{
-              background: floorPlanUrl
-                ? `url(${floorPlanUrl}) center/cover no-repeat`
-                : 'linear-gradient(135deg, #fff7f7 0%, #fdf2f8 100%)',
+              background: floorPlanUrl ? '#f8f8f8' : 'linear-gradient(135deg, #fff7f7 0%, #fdf2f8 100%)',
               minHeight: '300px',
               maxHeight: '600px',
             }}
@@ -389,6 +390,16 @@ export default function TablesPage() {
                 </defs>
                 <rect width={CANVAS_W} height={CANVAS_H} fill="url(#grid)" />
               </>
+            )}
+            {floorPlanUrl && (
+              <image
+                href={floorPlanUrl}
+                x="0"
+                y="0"
+                width={CANVAS_W}
+                height={CANVAS_H}
+                preserveAspectRatio="xMidYMid meet"
+              />
             )}
             {tables.map(t => (
               <TableShape key={t.id} table={t} selected={selected?.id === t.id} onSelect={setSelected} onDragStart={handleDragStart} />
