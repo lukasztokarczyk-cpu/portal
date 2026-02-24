@@ -1,0 +1,268 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  admin
+  coordinator
+  couple
+}
+
+enum StageStatus {
+  open
+  in_progress
+  completed
+}
+
+enum PaymentStatus {
+  unpaid
+  paid
+}
+
+model User {
+  id        String   @id @default(uuid())
+  login     String   @unique
+  email     String?  @unique
+  password  String
+  name      String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  wedding        Wedding?         @relation("CoupleWedding")
+  coordinatedAt  Wedding?         @relation("CoordinatorWedding")
+  sentMessages   Message[]        @relation("SentMessages")
+  passwordResets PasswordReset[]
+}
+
+model Wedding {
+  id          String   @id @default(uuid())
+  weddingDate DateTime
+  venueName   String   @default("Perła Pienin")
+  guestCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  coupleId       String  @unique
+  couple         User    @relation("CoupleWedding", fields: [coupleId], references: [id])
+  coordinatorId  String?  @unique
+  coordinator    User?   @relation("CoordinatorWedding", fields: [coordinatorId], references: [id])
+  floorPlan      String?
+
+  stages    Stage[]
+  guests    Guest[]
+  tables    TableLayout[]
+  payments  Payment[]
+  documents Document[]
+  messages  Message[]
+  menuSelections WeddingMenuSelection[]
+  menuConfig     WeddingMenuConfig?
+  roomBookings   RoomBooking[]
+  accommodationConfig AccommodationConfig?
+}
+
+model Stage {
+  id          String      @id @default(uuid())
+  weddingId   String
+  wedding     Wedding     @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  status      StageStatus @default(open)
+  dueDate     DateTime?
+  notes       String?
+  order       Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+
+model Guest {
+  id        String   @id @default(uuid())
+  weddingId String
+  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  firstName String
+  lastName  String
+  isChild   Boolean  @default(false)
+  diet      String?
+  tableId   String?
+  table     TableLayout? @relation(fields: [tableId], references: [id])
+  email     String?
+  phone     String?
+  rsvp      String?  // yes / no / pending
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TableLayout {
+  id        String   @id @default(uuid())
+  weddingId String
+  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  name      String
+  shape     String   @default("round")
+  capacity  Int      @default(8)
+  specialType String? // 'couple' | 'dj' | 'photographer'
+  posX      Float    @default(0)
+  posY      Float    @default(0)
+  rotation  Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  guests Guest[]
+}
+
+// Typ sekcji menu
+enum MenuSectionType {
+  ZUPA
+  DANIE_GLOWNE
+  DODATKI_GLOWNE
+  SUROWKI
+  DESER
+  CIEPLA_1
+  DODATKI_CIEPLA_1
+  SUROWKA_CIEPLA_1
+  CIEPLA_2
+  DODATKI_CIEPLA_2
+  SUROWKA_CIEPLA_2
+  CIEPLA_3
+  DODATKI_CIEPLA_3
+  SUROWKA_CIEPLA_3
+  ZIMNA_PLYTA
+  SALATKI
+}
+
+// Danie dostępne w systemie (admin dodaje/usuwa)
+model MenuDish {
+  id          String          @id @default(uuid())
+  section     MenuSectionType
+  name        String
+  description String?
+  isAvailable Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+
+  selections  WeddingMenuSelection[]
+}
+
+// Wybory konkretnego wesela
+model WeddingMenuSelection {
+  id        String          @id @default(uuid())
+  weddingId String
+  wedding   Wedding         @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+
+  // Tryb dania głównego: 'polmisek' | 'talerz'
+  mainCourseMode String?
+
+  // Deser lub tort: 'deser' | 'tort'
+  dessertChoice  String?
+
+  // Wybrane dania
+  dishId    String?
+  dish      MenuDish?       @relation(fields: [dishId], references: [id])
+  section   MenuSectionType
+  slotIndex Int             @default(0) // dla wielu wyborów w sekcji (0,1,2)
+
+  createdAt DateTime        @default(now())
+
+  @@unique([weddingId, section, slotIndex])
+}
+
+// Ustawienia menu wesela (tryb główny, deser/tort, locked)
+model WeddingMenuConfig {
+  id             String   @id @default(uuid())
+  weddingId      String   @unique
+  wedding        Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  mainCourseMode String?  // 'polmisek' | 'talerz'
+  dessertChoice  String?  // 'deser' | 'tort'
+  locked         Boolean  @default(false)
+  updatedAt      DateTime @updatedAt
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  weddingId   String
+  wedding     Wedding       @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  title       String
+  amount      Decimal       @db.Decimal(10, 2)
+  dueDate     DateTime?
+  status      PaymentStatus @default(unpaid)
+  paidAt      DateTime?
+  invoicePath String?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Document {
+  id         String   @id @default(uuid())
+  weddingId  String
+  wedding    Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  title      String
+  type       String   // contract / annex / regulations / other
+  filePath   String
+  fileSize   Int?
+  mimeType   String?
+  uploadedBy String
+  createdAt  DateTime @default(now())
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  weddingId  String
+  wedding    Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  senderId   String
+  sender     User     @relation("SentMessages", fields: [senderId], references: [id])
+  content    String
+  isRead     Boolean  @default(false)
+  attachment String?
+  createdAt  DateTime @default(now())
+}
+
+// Pokoje hotelowe (admin zarządza)
+model Room {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  capacity    Int      @default(2)
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  bookings    RoomBooking[]
+}
+
+// Rezerwacje noclegów
+model RoomBooking {
+  id          String   @id @default(uuid())
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  weddingId   String
+  wedding     Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  checkIn     DateTime
+  checkOut    DateTime
+  guestCount  Int      @default(2)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([roomId, checkIn])
+}
+
+// Ustawienia noclegów dla wesela
+model AccommodationConfig {
+  id            String   @id @default(uuid())
+  weddingId     String   @unique
+  wedding       Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  wantsStay     Boolean? // null = nie wybrano, true = tak, false = nie
+  updatedAt     DateTime @updatedAt
+}
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

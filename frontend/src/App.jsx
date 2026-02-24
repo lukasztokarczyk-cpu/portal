@@ -10,6 +10,7 @@ import MenuPage from './pages/MenuPage';
 import PaymentsPage from './pages/PaymentsPage';
 import DocumentsPage from './pages/DocumentsPage';
 import ChatPage from './pages/ChatPage';
+import AccommodationPage from './pages/AccommodationPage';
 import AdminPage from './pages/AdminPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 
@@ -36,6 +37,7 @@ function AppRoutes() {
         <Route path="payments" element={<PaymentsPage />} />
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="chat" element={<ChatPage />} />
+        <Route path="accommodation" element={<AccommodationPage />} />
         <Route path="admin" element={<RequireAuth roles={['admin']}><AdminPage /></RequireAuth>} />
       </Route>
     </Routes>

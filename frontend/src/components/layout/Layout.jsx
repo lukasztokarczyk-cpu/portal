@@ -10,6 +10,7 @@ const navItems = [
   { to: '/menu', label: 'Menu', icon: '🍽️', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/payments', label: 'Płatności', icon: '💳', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/documents', label: 'Dokumenty', icon: '📄', roles: ['admin', 'coordinator', 'couple'] },
+  { to: '/accommodation', label: 'Noclegi', icon: '🛏️', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/chat', label: 'Wiadomości', icon: '💬', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/admin', label: 'Zarządzanie', icon: '⚙️', roles: ['admin'] },
 ];
