@@ -130,7 +130,7 @@ exports.assignGuest = async (req, res, next) => {
 exports.uploadFloorPlan = async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Brak pliku' });
-    const path = await uploadFile(req.file.buffer, 'documents', `floorplan-${req.params.weddingId}`, req.file.mimetype);
+    const path = await uploadFile(req.file.buffer, 'documents', req.file.originalname, req.file.mimetype);
     await prisma.wedding.update({
       where: { id: req.params.weddingId },
       data: { floorPlan: path },
