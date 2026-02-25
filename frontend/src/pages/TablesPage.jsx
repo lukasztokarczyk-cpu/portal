@@ -260,7 +260,7 @@ export default function TablesPage() {
 
   const [approved, setApproved] = useState(false);
   const [sendingEmail, setSendingEmail] = useState(false);
-  const printRef = useRef();
+  const [planPreview, setPlanPreview] = useState(null); // { html, coupleEmail }
 
   const approvePlan = async () => {
     if (!confirm('Zatwierdzić plan stołów? Po zatwierdzeniu będzie można go wydrukować lub wysłać emailem.')) return;
@@ -268,16 +268,15 @@ export default function TablesPage() {
     toast.success('Plan zatwierdzony!');
   };
 
-  const printPlan = () => {
-    window.print();
-  };
+  const printPlan = () => { window.print(); };
 
   const sendEmail = async () => {
     setSendingEmail(true);
     try {
       const res = await api.post(`/tables/wedding/${weddingId}/send-plan`);
-      if (res.data.noSmtp) {
-        toast.success(`Plan gotowy! Email: ${res.data.coupleEmail} — skonfiguruj SMTP w ustawieniach Render aby wysyłać automatycznie.`, { duration: 6000 });
+      if (res.data.noSmtp || !res.data.sentTo) {
+        // Brak SMTP lub brak emaila — pokaż podgląd planu
+        setPlanPreview({ html: res.data.html, coupleEmail: res.data.coupleEmail });
       } else {
         toast.success(`Plan wysłany na ${res.data.sentTo}!`);
       }
@@ -584,6 +583,42 @@ export default function TablesPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal podglądu planu */}
+      {planPreview && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b">
+              <div>
+                <h3 className="font-bold text-lg text-gray-800">📋 Podgląd planu stołów</h3>
+                {planPreview.coupleEmail
+                  ? <p className="text-sm text-gray-500">Email: {planPreview.coupleEmail}</p>
+                  : <p className="text-sm text-amber-600">⚠️ Para nie ma adresu email — możesz tylko wydrukować</p>
+                }
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    const w = window.open('', '_blank');
+                    w.document.write(planPreview.html);
+                    w.document.close();
+                    w.print();
+                  }}
+                  className="px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl"
+                >
+                  🖨️ Drukuj plan
+                </button>
+                <button onClick={() => setPlanPreview(null)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-xl">
+                  Zamknij
+                </button>
+              </div>
+            </div>
+            <div className="overflow-y-auto p-5 flex-1">
+              <div dangerouslySetInnerHTML={{ __html: planPreview.html }} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -227,7 +227,7 @@ exports.sendPlanByEmail = async (req, res, next) => {
         subject: `Plan stołów — ${wedding.couple.name}`,
         html,
       });
-      res.json({ ok: true, sentTo: wedding.couple.email });
+      res.json({ ok: true, sentTo: wedding.couple.email, html });
     } else {
       // Brak SMTP — zwróć HTML do podglądu
       res.json({ ok: true, noSmtp: true, html, coupleEmail: wedding.couple.email });
