@@ -40,4 +40,7 @@
   .hidden.print\:block { display: block !important; }
   body { background: white; }
   .card { box-shadow: none; border: 1px solid #e5e7eb; }
+  nav, aside, header, .no-print { display: none !important; }
+  .print-only { display: block !important; }
+  @page { size: A4 landscape; margin: 1cm; }
 }

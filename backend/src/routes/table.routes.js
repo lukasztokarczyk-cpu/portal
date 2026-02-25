@@ -20,5 +20,6 @@ router.post('/:id/guests', authenticate, ctrl.addGuestToTable);
 router.patch('/:id/position', authenticate, ctrl.updatePosition);
 router.patch('/:id', authenticate, ctrl.update);
 router.delete('/:id', authenticate, ctrl.remove);
+router.post('/wedding/:weddingId/send-plan', authenticate, authorize('admin', 'coordinator'), ctrl.sendPlanByEmail);
 
 module.exports = router;

@@ -258,6 +258,34 @@ export default function TablesPage() {
     } catch { toast.error('Błąd rotacji'); }
   };
 
+  const [approved, setApproved] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const printRef = useRef();
+
+  const approvePlan = async () => {
+    if (!confirm('Zatwierdzić plan stołów? Po zatwierdzeniu będzie można go wydrukować lub wysłać emailem.')) return;
+    setApproved(true);
+    toast.success('Plan zatwierdzony!');
+  };
+
+  const printPlan = () => {
+    window.print();
+  };
+
+  const sendEmail = async () => {
+    setSendingEmail(true);
+    try {
+      const res = await api.post(`/tables/wedding/${weddingId}/send-plan`);
+      if (res.data.noSmtp) {
+        toast.success(`Plan gotowy! Email: ${res.data.coupleEmail} — skonfiguruj SMTP w ustawieniach Render aby wysyłać automatycznie.`, { duration: 6000 });
+      } else {
+        toast.success(`Plan wysłany na ${res.data.sentTo}!`);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Błąd wysyłania');
+    } finally { setSendingEmail(false); }
+  };
+
   const selectedTable = selected ? tables.find(t => t.id === selected.id) : null;
   const unassignedGuests = guests.filter(g => !g.tableId);
   const assignedGuests = guests.filter(g => g.tableId).length;
@@ -283,6 +311,24 @@ export default function TablesPage() {
             </label>
           )}
           <button onClick={() => setShowAddTable(true)} className="btn-primary text-sm">+ Dodaj stolik</button>
+          {tables.length > 0 && !approved && (
+            <button onClick={approvePlan} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white text-sm font-semibold rounded-xl transition-all">
+              ✅ Zatwierdź plan
+            </button>
+          )}
+          {approved && (
+            <>
+              <button onClick={printPlan} className="px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white text-sm font-semibold rounded-xl transition-all">
+                🖨️ Drukuj
+              </button>
+              <button onClick={sendEmail} disabled={sendingEmail} className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-sm font-semibold rounded-xl transition-all disabled:opacity-50">
+                {sendingEmail ? '...' : '📧 Wyślij emailem'}
+              </button>
+              <button onClick={() => setApproved(false)} className="text-sm text-gray-400 hover:text-gray-600">
+                ✏️ Edytuj
+              </button>
+            </>
+          )}
         </div>
       </div>
 

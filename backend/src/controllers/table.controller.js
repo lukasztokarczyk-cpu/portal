@@ -158,3 +158,79 @@ exports.getFloorPlan = async (req, res, next) => {
     res.json({ url });
   } catch (err) { next(err); }
 };
+
+exports.sendPlanByEmail = async (req, res, next) => {
+  try {
+    const { weddingId } = req.params;
+
+    const wedding = await prisma.wedding.findUnique({
+      where: { id: weddingId },
+      include: {
+        couple: { select: { name: true, email: true, login: true } },
+        tables: {
+          include: {
+            guests: { select: { firstName: true, lastName: true, isChild: true } },
+          },
+          orderBy: { name: 'asc' },
+        },
+      },
+    });
+
+    if (!wedding) return res.status(404).json({ error: 'Wesele nie znalezione' });
+    if (!wedding.couple?.email) return res.status(400).json({ error: 'Para nie ma adresu email' });
+
+    // Zbuduj treść HTML emaila
+    const tableRows = wedding.tables.map(t => {
+      const guestList = t.guests.map(g => `${g.firstName} ${g.lastName}${g.isChild ? ' (dziecko)' : ''}`).join(', ') || '— brak gości';
+      return `
+        <tr>
+          <td style="padding:8px;border:1px solid #e5e7eb;font-weight:600">${t.name}</td>
+          <td style="padding:8px;border:1px solid #e5e7eb;text-align:center">${t.guests.length}/${t.capacity}</td>
+          <td style="padding:8px;border:1px solid #e5e7eb;font-size:13px;color:#6b7280">${guestList}</td>
+        </tr>`;
+    }).join('');
+
+    const html = `
+      <div style="font-family:sans-serif;max-width:700px;margin:0 auto;color:#1f2937">
+        <h1 style="color:#e11d48;margin-bottom:4px">Plan stołów weselnych</h1>
+        <p style="color:#6b7280;margin-bottom:24px">${wedding.couple.name} • ${wedding.weddingDate ? new Date(wedding.weddingDate).toLocaleDateString('pl-PL') : ''}</p>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <thead>
+            <tr style="background:#fff1f2">
+              <th style="padding:10px;border:1px solid #e5e7eb;text-align:left">Stolik</th>
+              <th style="padding:10px;border:1px solid #e5e7eb;text-align:center">Miejsca</th>
+              <th style="padding:10px;border:1px solid #e5e7eb;text-align:left">Goście</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+        <p style="margin-top:24px;color:#9ca3af;font-size:12px">Wygenerowano przez system Pensjonatu Perła Pienin</p>
+      </div>`;
+
+    // Wyślij przez Supabase (używamy nodemailer lub prostego fetch)
+    // Na razie zwracamy sukces — email można skonfigurować przez Resend/SendGrid
+    // Logujemy do konsoli jako fallback
+    console.log(`[EMAIL] Plan stołów dla: ${wedding.couple.email}`);
+
+    // Spróbuj wysłać przez prosty SMTP jeśli skonfigurowany
+    const nodemailer = require('nodemailer');
+    if (process.env.SMTP_HOST) {
+      const transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT) || 587,
+        secure: false,
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      });
+      await transporter.sendMail({
+        from: process.env.SMTP_FROM || 'noreply@perlapienin.pl',
+        to: wedding.couple.email,
+        subject: `Plan stołów — ${wedding.couple.name}`,
+        html,
+      });
+      res.json({ ok: true, sentTo: wedding.couple.email });
+    } else {
+      // Brak SMTP — zwróć HTML do podglądu
+      res.json({ ok: true, noSmtp: true, html, coupleEmail: wedding.couple.email });
+    }
+  } catch (err) { next(err); }
+};
