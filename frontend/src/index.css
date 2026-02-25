@@ -34,3 +34,10 @@
     @apply inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700;
   }
 }
+
+@media print {
+  .print\:hidden { display: none !important; }
+  .hidden.print\:block { display: block !important; }
+  body { background: white; }
+  .card { box-shadow: none; border: 1px solid #e5e7eb; }
+}

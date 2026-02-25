@@ -96,6 +96,18 @@ export default function MenuPage() {
     } catch { toast.error('Błąd aktualizacji'); }
   };
 
+  const [showSummary, setShowSummary] = useState(false);
+
+  const approveMeniu = async () => {
+    try {
+      const res = await api.patch(`/menu/wedding/${selectedWeddingId}/config`, { locked: true });
+      setConfig(res.data);
+      refreshMenu();
+      setShowSummary(true);
+      toast.success('Menu zatwierdzone wstępnie!');
+    } catch { toast.error('Błąd'); }
+  };
+
   const selectDish = async (section, slotIndex, dishId) => {
     try {
       await api.post(`/menu/wedding/${selectedWeddingId}/select`, { section, slotIndex, dishId: dishId || '' });
@@ -205,6 +217,158 @@ export default function MenuPage() {
             )}
           </div>
         ))}
+      </div>
+    );
+  }
+
+  // WIDOK PODSUMOWANIA
+  if (showSummary && menuData) {
+    const sel = (section, slot = 0) => menuData.selectionsBySection?.[section]?.find(s => s.slotIndex === slot)?.dish;
+    const CAKE_SOURCE = { nas: 'Od nas', zewnetrzna: 'Z firmy zewnętrznej' };
+    const SWEET = { nas: 'Zamawiamy u Was', zewnetrzna: 'Firma zewnętrzna', rezygnuje: 'Rezygnujemy' };
+    const PACKAGES = { nas: 'Zamawiamy u Was', zewnetrzna: 'Firma zewnętrzna', nie: 'Nie, dziękujemy' };
+    const MAIN_MODE = { polmisek: 'Na półmiskach', talerz: 'Na talerzach' };
+
+    const Row = ({ label, value }) => value ? (
+      <div className="flex justify-between py-1.5 border-b border-gray-100 last:border-0">
+        <span className="text-gray-500 text-sm">{label}</span>
+        <span className="text-gray-800 text-sm font-medium text-right max-w-[60%]">{value}</span>
+      </div>
+    ) : null;
+
+    const Section = ({ title, children }) => (
+      <div className="mb-6">
+        <h3 className="font-bold text-gray-700 text-base mb-2 pb-1 border-b-2 border-rose-100">{title}</h3>
+        {children}
+      </div>
+    );
+
+    return (
+      <div className="space-y-5">
+        {/* Nagłówek */}
+        <div className="flex items-center justify-between flex-wrap gap-3 print:hidden">
+          <h1 className="text-2xl font-bold text-gray-800">Podsumowanie menu</h1>
+          <div className="flex gap-3">
+            <button onClick={() => { setShowSummary(false); if (isCouple) updateConfig({ locked: false }); }} className="btn-secondary">
+              ✏️ Edytuj menu
+            </button>
+            <button onClick={() => window.print()} className="btn-primary">
+              🖨️ Drukuj
+            </button>
+          </div>
+        </div>
+
+        {/* Nagłówek do druku */}
+        <div className="hidden print:block text-center mb-6">
+          <h1 className="text-2xl font-bold">Menu weselne</h1>
+          {menuData.wedding?.couple?.name && <p className="text-gray-600 mt-1">{menuData.wedding.couple.name}</p>}
+          {menuData.wedding?.weddingDate && <p className="text-gray-500 text-sm">{new Date(menuData.wedding.weddingDate).toLocaleDateString('pl-PL')}</p>}
+        </div>
+
+        <div id="menu-summary" className="bg-white rounded-2xl shadow p-6 space-y-2">
+
+          <Section title="🍲 Zupa">
+            <Row label="Zupa" value={sel('ZUPA')?.name} />
+          </Section>
+
+          <Section title="🥩 Danie główne">
+            <Row label="Sposób serwowania" value={MAIN_MODE[config.mainCourseMode]} />
+            {config.mainCourseMode === 'polmisek' ? (
+              <>
+                <Row label="Mięso 1" value={sel('DANIE_GLOWNE', 0)?.name} />
+                <Row label="Mięso 2" value={sel('DANIE_GLOWNE', 1)?.name} />
+                <Row label="Mięso 3" value={sel('DANIE_GLOWNE', 2)?.name} />
+              </>
+            ) : (
+              <Row label="Danie" value={sel('DANIE_GLOWNE', 0)?.name} />
+            )}
+            <Row label="Dodatek 1" value={sel('DODATKI_GLOWNE', 0)?.name} />
+            <Row label="Dodatek 2" value={sel('DODATKI_GLOWNE', 1)?.name} />
+            <Row label="Surówka 1" value={sel('SUROWKI', 0)?.name} />
+            <Row label="Surówka 2" value={sel('SUROWKI', 1)?.name} />
+            <Row label="Surówka 3" value={sel('SUROWKI', 2)?.name} />
+          </Section>
+
+          <Section title="🍰 Deser / Tort">
+            <Row label="Wybór" value={config.dessertChoice === 'deser' ? 'Deser z menu' : 'Tort weselny'} />
+            {config.dessertChoice === 'deser' && <Row label="Deser" value={sel('DESER', 0)?.name} />}
+            {config.dessertChoice === 'tort' && (
+              <>
+                <Row label="Źródło tortu" value={CAKE_SOURCE[config.cakeSource]} />
+                {config.cakeSource === 'nas' && <Row label="Smak tortu" value={config.cakeFlavors} />}
+              </>
+            )}
+            {cakeImageUrl && config.cakeSource === 'nas' && (
+              <div className="mt-2">
+                <p className="text-sm text-gray-500 mb-1">Zdjęcie tortu:</p>
+                <img src={cakeImageUrl} alt="Tort" className="rounded-xl max-h-40 object-contain border border-gray-200" />
+              </div>
+            )}
+          </Section>
+
+          <Section title="🍛 1. Ciepłe danie (wieczorowe)">
+            <Row label="Danie" value={sel('CIEPLA_1', 0)?.name} />
+            <Row label="Dodatek" value={sel('DODATKI_CIEPLA_1', 0)?.name} />
+            <Row label="Surówka" value={sel('SUROWKA_CIEPLA_1', 0)?.name} />
+          </Section>
+
+          {config.dessertChoice === 'deser' && (
+            <Section title="🎂 Tort weselny (między daniami)">
+              <Row label="Źródło tortu" value={CAKE_SOURCE[config.cakeSource]} />
+              {config.cakeSource === 'nas' && <Row label="Smak tortu" value={config.cakeFlavors} />}
+            </Section>
+          )}
+          {config.dessertChoice === 'tort' && (
+            <Section title="🍮 Deser wieczorny">
+              <Row label="Deser" value={sel('DESER', 0)?.name} />
+            </Section>
+          )}
+
+          <Section title="🍲 2. Ciepłe danie">
+            <Row label="Danie" value={sel('CIEPLA_2', 0)?.name} />
+            <Row label="Dodatek" value={sel('DODATKI_CIEPLA_2', 0)?.name} />
+            <Row label="Surówka" value={sel('SUROWKA_CIEPLA_2', 0)?.name} />
+          </Section>
+
+          <Section title="🥘 3. Ciepłe danie">
+            <Row label="Danie" value={sel('CIEPLA_3', 0)?.name} />
+            <Row label="Dodatek" value={sel('DODATKI_CIEPLA_3', 0)?.name} />
+            <Row label="Surówka" value={sel('SUROWKA_CIEPLA_3', 0)?.name} />
+          </Section>
+
+          <Section title="🧀 Zimna płyta">
+            <Row label="Opcja 1" value={sel('ZIMNA_PLYTA', 0)?.name} />
+            <Row label="Opcja 2" value={sel('ZIMNA_PLYTA', 1)?.name} />
+            <Row label="Opcja 3" value={sel('ZIMNA_PLYTA', 2)?.name} />
+          </Section>
+
+          <Section title="🥙 Sałatki">
+            <Row label="Sałatka 1" value={sel('SALATKI', 0)?.name} />
+            <Row label="Sałatka 2" value={sel('SALATKI', 1)?.name} />
+          </Section>
+
+          <Section title="🍬 Słodki stół">
+            <Row label="Wybór" value={SWEET[config.sweetTableChoice]} />
+            {config.sweetTableChoice === 'nas' && config.sweetTableAmount && (
+              <Row label="Kwota" value={`${parseFloat(config.sweetTableAmount).toFixed(2)} zł`} />
+            )}
+          </Section>
+
+          <Section title="🎁 Paczki dla gości">
+            <Row label="Wybór" value={PACKAGES[config.guestPackageChoice]} />
+            {config.guestPackageChoice === 'nas' && (
+              <>
+                {config.guestPackagePrice && <Row label="Cena / os." value={`${parseFloat(config.guestPackagePrice).toFixed(2)} zł`} />}
+                {config.guestPackageCount && <Row label="Liczba paczek" value={`${config.guestPackageCount} szt.`} />}
+              </>
+            )}
+          </Section>
+
+        </div>
+
+        <div className="card bg-green-50 border border-green-200 print:hidden">
+          <p className="text-sm text-green-700 text-center">✅ Menu zatwierdzone wstępnie. Możesz je wydrukować lub wrócić do edycji.</p>
+        </div>
       </div>
     );
   }
@@ -530,6 +694,16 @@ export default function MenuPage() {
             </div>
           )}
         </div>
+
+        {/* PRZYCISK ZATWIERDZENIA — tylko para, gdy nie zatwierdzone */}
+        {isCouple && !config.locked && (
+          <div className="card border-2 border-green-200 bg-green-50 text-center py-6">
+            <p className="text-gray-600 mb-4">Gdy skończysz wybierać, zatwierdź wstępnie menu. Będziesz mógł je wydrukować i wrócić do edycji.</p>
+            <button onClick={approveMeniu} className="btn-primary px-8 py-3 text-base">
+              ✅ Zatwierdź wstępnie menu
+            </button>
+          </div>
+        )}
 
       </>)}
     </div>
