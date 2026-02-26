@@ -29,7 +29,7 @@ export default function LoginPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap');
         .lp{font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;overflow:hidden}
-        .lp-l{width:45%;background:#0a0e1a;position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:48px;overflow:hidden;animation:lpfi .8s ease both}
+        .lp-l{width:45%;background:#0a0e1a;position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:48px;animation:lpfi .8s ease both}
         .lp-l::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 70%,rgba(100,130,200,.15) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(80,110,180,.08) 0%,transparent 50%);pointer-events:none}
         .lp-d{position:absolute;height:1px;left:0;right:0;background:rgba(176,138,80,.15)}
         .lp-d.t{top:130px}.lp-d.b{bottom:100px}
