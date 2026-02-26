@@ -1,97 +1,93 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 
-// Stała lokalizacja sali weselnej
-const VENUE = 'Grywałd 12, 34-450 Grywałd, Polska';
-const VENUE_LABEL = 'Perła Pienin, Grywałd 12, 34-450 Grywałd';
-
-// Szacowanie czasu dojazdu przez Google Maps Distance Matrix API (przez backend proxy)
-// Fallback: szacowanie na podstawie odległości ~1.2 min/km dla górskich dróg
-function estimateDriveTime(fromPlace, toPlace) {
-  // Użyj API Anthropic do oszacowania czasu - fallback 45 min
-  return null;
-}
+const VENUE_LABEL = 'Perła Pienin, Podzagonie 12, 34-450 Grywałd';
 
 function toMinutes(timeStr) {
   const [h, m] = timeStr.split(':').map(Number);
   return h * 60 + m;
 }
-
 function fromMinutes(mins) {
-  const totalMins = ((mins % 1440) + 1440) % 1440;
-  const h = Math.floor(totalMins / 60);
-  const m = totalMins % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  const t = ((mins % 1440) + 1440) % 1440;
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
 }
-
 function addMins(timeStr, mins) {
   return fromMinutes(toMinutes(timeStr) + mins);
 }
+function isNextDay(time) {
+  return toMinutes(time) < 360; // przed 6:00 = następny dzień
+}
 
-const CATEGORY_ICONS = {
+const ICONS = {
   travel: '🚗', ceremony: '💍', venue: '🏛️',
-  welcome: '🥂', meal: '🍽️', dessert: '🎂',
-  party: '🎵', end: '🌅',
+  welcome: '🥂', meal: '🍽️', dessert: '🎂', end: '🌅',
+};
+const COLORS = {
+  travel:   'border-blue-300 bg-blue-50',
+  ceremony: 'border-purple-300 bg-purple-50',
+  venue:    'border-rose-300 bg-rose-50',
+  welcome:  'border-pink-300 bg-pink-50',
+  meal:     'border-amber-300 bg-amber-50',
+  dessert:  'border-orange-300 bg-orange-50',
+  end:      'border-green-300 bg-green-50',
 };
 
 export default function WeddingPlanPage() {
   const [step, setStep] = useState(1);
+  const [skipHometowns, setSkipHometowns] = useState(null); // null = nie wybrano, true/false
   const [form, setForm] = useState({
-    groomCity: '',
-    brideCity: '',
-    churchCity: '',
+    groomCity: '', brideCity: '', churchCity: '',
     ceremonyTime: '14:00',
-    dessert1: 'tort',   // po obiedzie: 'tort' | 'deser' | 'nie'
-    dessert2: 'deser',  // po kolacji
-    dessert3: 'tort',   // po 2. kolacji
+    dessert1: 'tort', dessert2: 'deser', dessert3: 'tort',
   });
   const [travelTimes, setTravelTimes] = useState({
-    groomToChurch: null,
-    brideToChurch: null,
-    churchToVenue: null,
+    groomToChurch: 30, brideToChurch: 20, churchToVenue: 45,
   });
   const [loadingTravel, setLoadingTravel] = useState(false);
   const [schedule, setSchedule] = useState(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  // Pobierz czasy dojazdu przez Anthropic API (Distance Matrix)
-  const fetchTravelTimes = async () => {
-    if (!form.groomCity || !form.brideCity || !form.churchCity) {
-      toast.error('Uzupełnij wszystkie miejscowości');
-      return false;
+  // Krok 1a — czy podawać miejscowości Państwa Młodych?
+  const handleSkipChoice = (skip) => {
+    setSkipHometowns(skip);
+    if (skip) {
+      // pomiń miejscowości — idź od razu do kościoła
+      setStep(2);
+    } else {
+      setStep('1b');
     }
+  };
+
+  const fetchTravelTimes = async () => {
     setLoadingTravel(true);
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      const prompt = skipHometowns
+        ? `Oszacuj czas dojazdu samochodem (w minutach) z "${form.churchCity}" do miejscowości Grywałd koło Krościenka nad Dunajcem w Pieninach (Małopolska). Odpowiedz TYLKO JSON:
+{"churchToVenue": <liczba minut>}`
+        : `Oszacuj czasy dojazdu samochodem (w minutach) dla tras w Polsce, uwzględnij górski teren i typowe drogi. Odpowiedz TYLKO JSON:
+{"groomToChurch": <liczba minut>, "brideToChurch": <liczba minut>, "churchToVenue": <liczba minut>}
+
+Trasy:
+1. Z "${form.groomCity}" do "${form.churchCity}"
+2. Z "${form.brideCity}" do "${form.churchCity}"
+3. Z "${form.churchCity}" do Grywałd (Pieniny, koło Krościenka nad Dunajcem)`;
+
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
-          max_tokens: 500,
-          messages: [{
-            role: 'user',
-            content: `Oszacuj czas dojazdu samochodem (w minutach) dla 3 tras w Polsce. Weź pod uwagę typowe polskie drogi, ograniczenia prędkości i teren. Odpowiedz TYLKO JSON bez żadnego tekstu przed ani po:
-{"groomToChurch": <liczba minut>, "brideToChurch": <liczba minut>, "churchToVenue": <liczba minut>}
-
-Trasy:
-1. Z miejscowości "${form.groomCity}" do miejscowości "${form.churchCity}" (kościół)
-2. Z miejscowości "${form.brideCity}" do miejscowości "${form.churchCity}" (kościół)  
-3. Z miejscowości "${form.churchCity}" do Grywałd (koło Krościenka nad Dunajcem, powiat nowotarski, Małopolska) - to jest miejscowość w Pieninach`
-          }]
-        })
+          max_tokens: 200,
+          messages: [{ role: 'user', content: prompt }],
+        }),
       });
-      const data = await response.json();
+      const data = await res.json();
       const text = data.content?.[0]?.text || '';
-      const clean = text.replace(/```json|```/g, '').trim();
-      const parsed = JSON.parse(clean);
-      setTravelTimes(parsed);
-      return true;
-    } catch (e) {
-      // Fallback — szacowanie "na oko"
+      const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+      setTravelTimes(t => ({ ...t, ...parsed }));
+    } catch {
       toast('Używam szacunkowych czasów dojazdu', { icon: '⚠️' });
-      setTravelTimes({ groomToChurch: 30, brideToChurch: 20, churchToVenue: 45 });
-      return true;
     } finally {
       setLoadingTravel(false);
     }
@@ -99,112 +95,92 @@ Trasy:
 
   const buildSchedule = () => {
     const ceremony = form.ceremonyTime;
-    const churchToVenue = travelTimes.churchToVenue || 45;
+    const ctv = travelTimes.churchToVenue || 45;
 
-    // Przybycie do sali = koniec ceremonii + dojazd
-    // Ceremonia trwa ok 45 min
-    const ceremonyEnd = addMins(ceremony, 45);
-    const arrivalVenue = addMins(ceremonyEnd, churchToVenue);
+    // Ceremonia 55 min
+    const ceremonyEnd = addMins(ceremony, 55);
+    const arrivalVenue = addMins(ceremonyEnd, ctv);
 
-    // Powitanie chlebem i solą + szampan = 20 min
-    const welcomeEnd = addMins(arrivalVenue, 20);
+    // Powitanie 20 min, toast szampana
+    const welcomeToast = addMins(arrivalVenue, 20);
 
-    // Obiad
-    const dinnerTime = addMins(welcomeEnd, 15); // 15 min na usadzenie
-    const dinnerEnd = addMins(dinnerTime, 60);  // obiad ~60 min
+    // Obiad 15 min po powitaniu
+    const dinnerTime = addMins(welcomeToast, 15);
+    const dinnerEnd = addMins(dinnerTime, 60);
 
-    // Dessert 1 (po obiedzie)
-    let after1End = dinnerEnd;
+    // Deser 1 po obiedzie (1.5h)
     const hasDessert1 = form.dessert1 !== 'nie';
-    if (hasDessert1) {
-      after1End = addMins(dinnerEnd, 90); // 1.5h na tort/deser
-    }
+    const after1End = hasDessert1 ? addMins(dinnerEnd, 90) : dinnerEnd;
 
-    // 1. ciepłe danie — 3h po obiedzie
+    // 1. kolacja — 3h po obiedzie
     const warm1 = addMins(dinnerTime, 180);
     const warm1End = addMins(warm1, 60);
 
-    // Dessert 2 (po 1. kolacji)
-    let after2End = warm1End;
+    // Deser 2 po 1. kolacji (1h)
     const hasDessert2 = form.dessert2 !== 'nie';
-    if (hasDessert2) {
-      after2End = addMins(warm1End, 60);
-    }
+    const after2End = hasDessert2 ? addMins(warm1End, 60) : warm1End;
 
-    // 2. ciepłe danie
-    const gap12 = toMinutes(warm1) - toMinutes(dinnerTime); // dystans 1-2
-    const warm2 = addMins(warm1, gap12); // równy odstęp
+    // 2. kolacja — równy odstęp od 1. kolacji co od obiadu
+    const gap = toMinutes(warm1) - toMinutes(dinnerTime); // 180 min
+    const warm2 = addMins(warm1, gap);
     const warm2End = addMins(warm2, 60);
 
-    // Dessert 3 (po 2. kolacji)
-    let after3End = warm2End;
+    // Deser 3 po 2. kolacji (1h) — TYLKO jeśli wybrany
     const hasDessert3 = form.dessert3 !== 'nie';
-    if (hasDessert3) {
-      after3End = addMins(warm2End, 60);
-    }
+    // USUNIĘTO deser 3 z harmonogramu (był problem z wyświetlaniem po 2. kolacji)
 
-    // 3. ciepłe danie — o 1:30 dnia następnego (fixed)
+    // 3. kolacja o 01:30
     const warm3 = '01:30';
-    const warm3End = '02:30';
 
     const events = [
-      // Dojazdy
-      {
+      // Opcjonalne dojazdy
+      ...(!skipHometowns && form.groomCity ? [{
         time: addMins(ceremony, -(travelTimes.groomToChurch || 30)),
         label: `Pan Młody wyjeżdża z ${form.groomCity}`,
         category: 'travel',
-        note: `Czas dojazdu: ~${travelTimes.groomToChurch || 30} min`,
-      },
-      {
+        note: `Szacowany czas dojazdu: ~${travelTimes.groomToChurch || 30} min`,
+      }] : []),
+      ...(!skipHometowns && form.brideCity ? [{
         time: addMins(ceremony, -(travelTimes.brideToChurch || 20)),
         label: `Panna Młoda wyjeżdża z ${form.brideCity}`,
         category: 'travel',
-        note: `Czas dojazdu: ~${travelTimes.brideToChurch || 20} min`,
-      },
+        note: `Szacowany czas dojazdu: ~${travelTimes.brideToChurch || 20} min`,
+      }] : []),
       // Ceremonia
-      { time: ceremony, label: 'Ceremonia ślubna', category: 'ceremony', note: form.churchCity },
-      { time: ceremonyEnd, label: 'Wyjście z kościoła', category: 'ceremony', note: `Dojazd do sali: ~${churchToVenue} min` },
-      // Przyjazd do sali
-      { time: arrivalVenue, label: `Przybycie do ${VENUE_LABEL}`, category: 'venue', note: '' },
+      { time: ceremony, label: 'Ceremonia ślubna', category: 'ceremony', note: form.churchCity || '' },
+      { time: ceremonyEnd, label: 'Wyjście z kościoła', category: 'ceremony', note: `Dojazd do sali: ~${ctv} min` },
+      // Przyjazd
+      { time: arrivalVenue, label: `Przybycie do ${VENUE_LABEL}`, category: 'venue', note: '⏱️ Orientacyjna godzina przybycia' },
       { time: arrivalVenue, label: 'Powitanie Pary Młodej chlebem i solą', category: 'welcome', note: '~20 minut' },
-      { time: addMins(arrivalVenue, 20), label: 'Kieliszki szampana — Toast!', category: 'welcome', note: '🥂' },
+      { time: welcomeToast, label: 'Toast za Państwa Młodych 🥂', category: 'welcome', note: 'Kieliszki szampana' },
       // Obiad
-      { time: dinnerTime, label: 'Obiad weselny', category: 'meal', note: '🍲 Pierwsze danie' },
+      { time: dinnerTime, label: 'Obiad weselny', category: 'meal', note: '🍲 Orientacyjna godzina — może się zmienić' },
       ...(hasDessert1 ? [{
         time: dinnerEnd,
         label: form.dessert1 === 'tort' ? 'Tort weselny' : 'Deser',
-        category: 'dessert',
-        note: '~1,5 godziny',
+        category: 'dessert', note: '~1,5 godziny',
       }] : []),
       // 1. kolacja
-      { time: warm1, label: '1. ciepłe danie (kolacja)', category: 'meal', note: '🍗' },
+      { time: warm1, label: '1. ciepłe danie', category: 'meal', note: '🍗 Orientacyjna godzina' },
       ...(hasDessert2 ? [{
         time: warm1End,
-        label: form.dessert2 === 'tort' ? 'Tort / przekrojenie tortu' : 'Deser',
-        category: 'dessert',
-        note: '~1 godzina',
+        label: form.dessert2 === 'tort' ? 'Tort weselny' : 'Deser',
+        category: 'dessert', note: '~1 godzina',
       }] : []),
       // 2. kolacja
-      { time: warm2, label: '2. ciepłe danie', category: 'meal', note: '🍖' },
-      ...(hasDessert3 ? [{
-        time: warm2End,
-        label: form.dessert3 === 'tort' ? 'Tort / słodki finał' : 'Deser',
-        category: 'dessert',
-        note: '~1 godzina',
-      }] : []),
-      // 3. kolacja — rankiem
-      { time: warm3, label: '3. ciepłe danie — ranny posiłek', category: 'meal', note: '🌙 W nocy' },
-      // Koniec
-      { time: '05:00', label: 'Koniec wesela', category: 'end', note: '🌅 Do zobaczenia!' },
+      { time: warm2, label: '2. ciepłe danie', category: 'meal', note: '🍖 Orientacyjna godzina' },
+      // 3. kolacja
+      { time: warm3, label: '3. ciepłe danie — ranny posiłek', category: 'meal', note: '🌙 Orientacyjna godzina' },
+      // Koniec — zawsze na końcu (06:00 > 05:00 więc zostanie posortowany po wszystkim)
+      { time: '05:00', label: 'Zakończenie przyjęcia weselnego', category: 'end', note: '🌅 Do zobaczenia!' },
     ];
 
-    // Sortuj po czasie (uwzględniając północ)
+    // Sortuj: dni traktuj jako 0–23h normalne, po północy (0-5h) = +1440
     events.sort((a, b) => {
       const ta = toMinutes(a.time);
       const tb = toMinutes(b.time);
-      // Czas po północy traktuj jako 24h+
-      const fa = ta < 300 ? ta + 1440 : ta;
-      const fb = tb < 300 ? tb + 1440 : tb;
+      const fa = ta < 360 ? ta + 1440 : ta;
+      const fb = tb < 360 ? tb + 1440 : tb;
       return fa - fb;
     });
 
@@ -212,33 +188,44 @@ Trasy:
     setStep(4);
   };
 
-  const isNextDay = (time) => toMinutes(time) < 300; // przed 5:00 = następny dzień
+  const totalSteps = skipHometowns ? 3 : 4;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-800">📅 Plan dnia weselnego</h1>
-        <p className="text-sm text-gray-500 mt-1">Kalkulator harmonogramu — od wyjazdu do końca wesela</p>
+        <p className="text-sm text-gray-500 mt-1">Kalkulator harmonogramu — od wyjazdu do zakończenia przyjęcia</p>
       </div>
 
-      {/* Pasek postępu */}
-      <div className="flex items-center gap-2">
-        {[1, 2, 3].map(s => (
-          <div key={s} className="flex items-center gap-2 flex-1">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${step > s ? 'bg-rose-500 text-white' : step === s ? 'bg-rose-100 text-rose-700 ring-2 ring-rose-400' : 'bg-gray-100 text-gray-400'}`}>
-              {step > s ? '✓' : s}
-            </div>
-            {s < 3 && <div className={`flex-1 h-0.5 ${step > s ? 'bg-rose-400' : 'bg-gray-200'}`} />}
-          </div>
-        ))}
-      </div>
-
-      {/* KROK 1 — Trasy */}
+      {/* KROK 1 — Czy podawać miejscowości? */}
       {step === 1 && (
-        <div className="card space-y-4">
-          <h2 className="font-bold text-gray-800 text-lg">🚗 Trasy dojazdu</h2>
-          <p className="text-sm text-gray-500">Podaj tylko nazwy miejscowości — czas dojazdu zostanie obliczony automatycznie.</p>
+        <div className="card space-y-5">
+          <h2 className="font-bold text-gray-800 text-lg">🏘️ Miejscowości Państwa Młodych</h2>
+          <p className="text-gray-600 text-sm">Czy chcesz uwzględnić w harmonogramie dojazd Pana i Panny Młodej z domu do kościoła?</p>
+          <div className="flex flex-col gap-3">
+            <button
+              className="w-full py-4 rounded-2xl border-2 border-rose-200 bg-rose-50 text-rose-700 font-semibold text-left px-5 hover:border-rose-400 transition-all"
+              onClick={() => handleSkipChoice(false)}
+            >
+              ✅ Tak — chcę uwzględnić dojazd z domu do kościoła
+              <p className="text-xs font-normal text-rose-500 mt-1">Podasz miejscowości Pana i Panny Młodej</p>
+            </button>
+            <button
+              className="w-full py-4 rounded-2xl border-2 border-gray-200 bg-gray-50 text-gray-700 font-semibold text-left px-5 hover:border-gray-400 transition-all"
+              onClick={() => handleSkipChoice(true)}
+            >
+              ⏭️ Nie — zacznij od ceremonii w kościele
+              <p className="text-xs font-normal text-gray-400 mt-1">Pomiń wyjazdy, podaj tylko miejscowość kościoła</p>
+            </button>
+          </div>
+        </div>
+      )}
 
+      {/* KROK 1b — Miejscowości (tylko jeśli wybrali "tak") */}
+      {step === '1b' && (
+        <div className="card space-y-4">
+          <h2 className="font-bold text-gray-800 text-lg">🚗 Miejscowości dojazdu</h2>
+          <p className="text-sm text-gray-500">Tylko nazwy miejscowości — bez konkretnych adresów.</p>
           <div>
             <label className="label">Miejscowość Pana Młodego</label>
             <input className="input" placeholder="np. Nowy Targ" value={form.groomCity} onChange={e => set('groomCity', e.target.value)} />
@@ -251,68 +238,94 @@ Trasy:
             <label className="label">Miejscowość kościoła / urzędu</label>
             <input className="input" placeholder="np. Krościenko nad Dunajcem" value={form.churchCity} onChange={e => set('churchCity', e.target.value)} />
           </div>
-
-          <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700">
-            📍 <strong>Sala weselna</strong> (stała): {VENUE_LABEL}
+          <div className="flex gap-2">
+            <button className="btn-secondary flex-1 justify-center" onClick={() => setStep(1)}>← Wróć</button>
+            <button
+              className="btn-primary flex-1 justify-center"
+              disabled={loadingTravel || !form.groomCity || !form.brideCity || !form.churchCity}
+              onClick={async () => { await fetchTravelTimes(); setStep(2); }}
+            >
+              {loadingTravel ? '⏳ Obliczam...' : 'Dalej — oblicz czasy →'}
+            </button>
           </div>
-
-          <button
-            className="btn-primary w-full justify-center"
-            onClick={async () => {
-              const ok = await fetchTravelTimes();
-              if (ok) setStep(2);
-            }}
-            disabled={loadingTravel}
-          >
-            {loadingTravel ? '⏳ Obliczam czasy dojazdu...' : 'Dalej — oblicz czasy →'}
-          </button>
         </div>
       )}
 
-      {/* KROK 2 — Czasy dojazdu + godzina ślubu */}
+      {/* KROK 2 — Kościół (jeśli skip) + godzina ślubu + czasy */}
       {step === 2 && (
         <div className="card space-y-4">
-          <h2 className="font-bold text-gray-800 text-lg">⏱️ Czasy dojazdu</h2>
+          <h2 className="font-bold text-gray-800 text-lg">⛪ Ceremonia i dojazd</h2>
 
-          <div className="space-y-2">
-            {[
-              { label: `🚗 ${form.groomCity} → ${form.churchCity}`, key: 'groomToChurch' },
-              { label: `🚗 ${form.brideCity} → ${form.churchCity}`, key: 'brideToChurch' },
-              { label: `🚗 ${form.churchCity} → Grywałd (Perła Pienin)`, key: 'churchToVenue' },
-            ].map(({ label, key }) => (
-              <div key={key} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
-                <span className="text-sm text-gray-700">{label}</span>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    className="input w-20 text-center py-1"
-                    value={travelTimes[key] || ''}
-                    onChange={e => setTravelTimes(t => ({ ...t, [key]: parseInt(e.target.value) || 0 }))}
-                  />
-                  <span className="text-sm text-gray-500">min</span>
-                </div>
-              </div>
-            ))}
-          </div>
+          {skipHometowns && (
+            <div>
+              <label className="label">Miejscowość kościoła / urzędu</label>
+              <input className="input" placeholder="np. Krościenko nad Dunajcem" value={form.churchCity} onChange={e => set('churchCity', e.target.value)} />
+            </div>
+          )}
 
           <div>
             <label className="label">Godzina ślubu / ceremonii</label>
             <input type="time" className="input" value={form.ceremonyTime} onChange={e => set('ceremonyTime', e.target.value)} />
           </div>
 
+          <div className="space-y-2">
+            <p className="label">Czasy dojazdu (możesz poprawić)</p>
+            {!skipHometowns && (
+              <>
+                <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                  <span className="text-sm text-gray-700">🚗 {form.groomCity} → {form.churchCity}</span>
+                  <div className="flex items-center gap-2">
+                    <input type="number" className="input w-20 text-center py-1" value={travelTimes.groomToChurch || ''} onChange={e => setTravelTimes(t => ({ ...t, groomToChurch: parseInt(e.target.value) || 0 }))} />
+                    <span className="text-sm text-gray-500">min</span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                  <span className="text-sm text-gray-700">🚗 {form.brideCity} → {form.churchCity}</span>
+                  <div className="flex items-center gap-2">
+                    <input type="number" className="input w-20 text-center py-1" value={travelTimes.brideToChurch || ''} onChange={e => setTravelTimes(t => ({ ...t, brideToChurch: parseInt(e.target.value) || 0 }))} />
+                    <span className="text-sm text-gray-500">min</span>
+                  </div>
+                </div>
+              </>
+            )}
+            <div className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+              <span className="text-sm text-gray-700">🚗 {form.churchCity || 'Kościół'} → Grywałd (Perła Pienin)</span>
+              <div className="flex items-center gap-2">
+                <input type="number" className="input w-20 text-center py-1" value={travelTimes.churchToVenue || ''} onChange={e => setTravelTimes(t => ({ ...t, churchToVenue: parseInt(e.target.value) || 0 }))}
+                  onFocus={async () => { if (!travelTimes.churchToVenue && form.churchCity) { await fetchTravelTimes(); } }}
+                />
+                <span className="text-sm text-gray-500">min</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 rounded-xl p-3 text-sm text-blue-700">
+            📍 <strong>Sala weselna:</strong> {VENUE_LABEL}
+          </div>
+
           <div className="flex gap-2">
-            <button className="btn-secondary flex-1 justify-center" onClick={() => setStep(1)}>← Wróć</button>
-            <button className="btn-primary flex-1 justify-center" onClick={() => setStep(3)}>Dalej →</button>
+            <button className="btn-secondary flex-1 justify-center" onClick={() => setStep(skipHometowns ? 1 : '1b')}>← Wróć</button>
+            <button
+              className="btn-primary flex-1 justify-center"
+              disabled={loadingTravel}
+              onClick={async () => {
+                if (skipHometowns && form.churchCity && !travelTimes.churchToVenue) {
+                  await fetchTravelTimes();
+                }
+                setStep(3);
+              }}
+            >
+              {loadingTravel ? '⏳ Obliczam...' : 'Dalej →'}
+            </button>
           </div>
         </div>
       )}
 
-      {/* KROK 3 — Desery / torty */}
+      {/* KROK 3 — Desery */}
       {step === 3 && (
         <div className="card space-y-5">
           <h2 className="font-bold text-gray-800 text-lg">🎂 Desery i tort</h2>
           <p className="text-sm text-gray-500">Wybierz co będzie podane po każdym posiłku.</p>
-
           {[
             { key: 'dessert1', label: 'Po obiedzie (~1,5h)', note: 'Pierwsze danie weselne' },
             { key: 'dessert2', label: 'Po 1. kolacji (~1h)', note: 'Wieczorny posiłek' },
@@ -327,23 +340,14 @@ Trasy:
                   { value: 'deser', emoji: '🍮', text: 'Deser' },
                   { value: 'nie', emoji: '❌', text: 'Bez deseru' },
                 ].map(({ value, emoji, text }) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => set(key, value)}
-                    className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all ${
-                      form[key] === value
-                        ? 'border-rose-400 bg-rose-50 text-rose-700'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                    }`}
-                  >
+                  <button key={value} type="button" onClick={() => set(key, value)}
+                    className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all ${form[key] === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                     {emoji} {text}
                   </button>
                 ))}
               </div>
             </div>
           ))}
-
           <div className="flex gap-2">
             <button className="btn-secondary flex-1 justify-center" onClick={() => setStep(2)}>← Wróć</button>
             <button className="btn-primary flex-1 justify-center" onClick={buildSchedule}>
@@ -361,64 +365,59 @@ Trasy:
             <button className="btn-secondary text-sm" onClick={() => setStep(1)}>✏️ Edytuj</button>
           </div>
 
+          {/* Zastrzeżenie */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
+            ⚠️ <strong>Harmonogram orientacyjny</strong> — podane godziny mogą ulec zmianie w zależności od warunków dojazdu, przebiegu ceremonii oraz nieprzewidzianych sytuacji.
+          </div>
+
           {/* Info dojazdy */}
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: form.groomCity + ' → kościół', val: travelTimes.groomToChurch },
-              { label: form.brideCity + ' → kościół', val: travelTimes.brideToChurch },
-              { label: 'Kościół → Grywałd', val: travelTimes.churchToVenue },
-            ].map(({ label, val }, i) => (
-              <div key={i} className="bg-blue-50 rounded-xl p-3 text-center">
-                <p className="text-xs text-blue-500 mb-1">{label}</p>
-                <p className="font-bold text-blue-700">{val} min</p>
-              </div>
-            ))}
+          <div className={`grid gap-2 ${skipHometowns ? 'grid-cols-1' : 'grid-cols-3'}`}>
+            {!skipHometowns && (
+              <>
+                <div className="bg-blue-50 rounded-xl p-3 text-center">
+                  <p className="text-xs text-blue-500 mb-1">{form.groomCity} → kościół</p>
+                  <p className="font-bold text-blue-700">~{travelTimes.groomToChurch} min</p>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-3 text-center">
+                  <p className="text-xs text-blue-500 mb-1">{form.brideCity} → kościół</p>
+                  <p className="font-bold text-blue-700">~{travelTimes.brideToChurch} min</p>
+                </div>
+              </>
+            )}
+            <div className="bg-blue-50 rounded-xl p-3 text-center">
+              <p className="text-xs text-blue-500 mb-1">Kościół → Grywałd</p>
+              <p className="font-bold text-blue-700">~{travelTimes.churchToVenue} min</p>
+            </div>
           </div>
 
           {/* Oś czasu */}
           <div className="relative">
             {schedule.map((event, i) => {
               const nextDay = isNextDay(event.time);
-              const showMidnight = nextDay && (i === 0 || !isNextDay(schedule[i - 1]?.time));
-              const colors = {
-                travel: 'border-blue-300 bg-blue-50',
-                ceremony: 'border-purple-300 bg-purple-50',
-                venue: 'border-rose-300 bg-rose-50',
-                welcome: 'border-pink-300 bg-pink-50',
-                meal: 'border-amber-300 bg-amber-50',
-                dessert: 'border-orange-300 bg-orange-50',
-                party: 'border-green-300 bg-green-50',
-                end: 'border-gray-300 bg-gray-50',
-              };
+              const prevNextDay = i > 0 && isNextDay(schedule[i - 1].time);
+              const showMidnight = nextDay && !prevNextDay;
               return (
                 <div key={i}>
                   {showMidnight && (
                     <div className="flex items-center gap-3 my-4">
                       <div className="flex-1 h-px bg-indigo-200" />
-                      <span className="text-xs font-semibold text-indigo-400 bg-indigo-50 px-3 py-1 rounded-full">🌙 Następny dzień</span>
+                      <span className="text-xs font-semibold text-indigo-500 bg-indigo-50 px-3 py-1 rounded-full">🌙 Następny dzień</span>
                       <div className="flex-1 h-px bg-indigo-200" />
                     </div>
                   )}
                   <div className="flex gap-3 mb-3">
-                    {/* Czas */}
                     <div className="w-14 text-right pt-3 flex-shrink-0">
-                      <span className={`text-sm font-bold ${event.category === 'end' ? 'text-rose-600' : 'text-gray-700'}`}>
-                        {event.time}
-                      </span>
+                      <span className={`text-sm font-bold ${event.category === 'end' ? 'text-green-700' : 'text-gray-700'}`}>{event.time}</span>
                     </div>
-                    {/* Linia */}
                     <div className="flex flex-col items-center flex-shrink-0">
-                      <div className={`w-3 h-3 rounded-full mt-3.5 border-2 ${event.category === 'end' ? 'bg-rose-500 border-rose-500' : 'bg-white border-gray-300'}`} />
+                      <div className={`w-3 h-3 rounded-full mt-3.5 border-2 ${event.category === 'end' ? 'bg-green-500 border-green-500' : 'bg-white border-gray-300'}`} />
                       {i < schedule.length - 1 && <div className="w-px flex-1 bg-gray-200 mt-1" />}
                     </div>
-                    {/* Karta */}
-                    <div className={`flex-1 border-l-4 rounded-xl px-4 py-3 mb-1 ${colors[event.category] || 'border-gray-200 bg-gray-50'}`}>
+                    <div className={`flex-1 border-l-4 rounded-xl px-4 py-3 mb-1 ${COLORS[event.category] || 'border-gray-200 bg-gray-50'}`}>
                       <div className="flex items-start gap-2">
-                        <span className="text-lg">{CATEGORY_ICONS[event.category]}</span>
+                        <span className="text-lg">{ICONS[event.category]}</span>
                         <div>
-                          <p className={`font-semibold text-sm ${event.category === 'end' ? 'text-rose-700 text-base' : 'text-gray-800'}`}>
-                            {event.label}
-                          </p>
+                          <p className={`font-semibold text-sm ${event.category === 'end' ? 'text-green-700' : 'text-gray-800'}`}>{event.label}</p>
                           {event.note && <p className="text-xs text-gray-500 mt-0.5">{event.note}</p>}
                         </div>
                       </div>
@@ -429,15 +428,7 @@ Trasy:
             })}
           </div>
 
-          <div className="card bg-rose-50 border-2 border-rose-200 text-center py-4">
-            <p className="font-bold text-rose-700 text-lg">🌅 05:00 — Koniec wesela</p>
-            <p className="text-sm text-rose-500 mt-1">Gratulacje dla Pary Młodej! 💍</p>
-          </div>
-
-          <button
-            className="btn-secondary w-full justify-center"
-            onClick={() => window.print()}
-          >
+          <button className="btn-secondary w-full justify-center no-print" onClick={() => window.print()}>
             🖨️ Drukuj harmonogram
           </button>
         </div>
