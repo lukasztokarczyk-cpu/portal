@@ -20,6 +20,11 @@ async function generateSummary(weddingId) {
       guests: true,
       tables: true,
       menuConfig: true,
+      roomBookings: {
+        include: {
+          room: { select: { id: true, name: true, capacity: true } },
+        },
+      },
     },
   });
   if (!wedding) throw new Error('Wesele nie znalezione');
@@ -100,6 +105,16 @@ async function generateSummary(weddingId) {
       + (packagesCost || 0);
   }
 
+  // Noclegi
+  const bookedRooms = wedding.roomBookings.map(b => ({
+    roomName: b.room.name,
+    guestCount: b.guestCount,
+    checkIn: b.checkIn,
+    checkOut: b.checkOut,
+    notes: b.notes,
+  }));
+  const roomsCount = wedding.roomBookings.length;
+
   const summaryData = {
     isVisible,
     adultsCount,
@@ -135,15 +150,15 @@ async function generateSummary(weddingId) {
     update: summaryData,
   });
 
-  return { summary, daysUntil, weddingDate };
+  return { summary, daysUntil, weddingDate, bookedRooms, roomsCount };
 }
 
 // GET /api/summary/wedding/:weddingId
 exports.getSummary = async (req, res, next) => {
   try {
     const { weddingId } = req.params;
-    const { summary, daysUntil, weddingDate } = await generateSummary(weddingId);
-    res.json({ summary, daysUntil, weddingDate });
+    const { summary, daysUntil, weddingDate, bookedRooms, roomsCount } = await generateSummary(weddingId);
+    res.json({ summary, daysUntil, weddingDate, bookedRooms, roomsCount });
   } catch (err) { next(err); }
 };
 
@@ -156,12 +171,11 @@ exports.setPrice = async (req, res, next) => {
       where: { id: weddingId },
       data: { pricePerPerson: pricePerPerson ? parseFloat(pricePerPerson) : null },
     });
-    const { summary, daysUntil } = await generateSummary(weddingId);
-    res.json({ summary, daysUntil });
+    const { summary, daysUntil, bookedRooms, roomsCount } = await generateSummary(weddingId);
+    res.json({ summary, daysUntil, bookedRooms, roomsCount });
   } catch (err) { next(err); }
 };
 
-// POST /api/summary/wedding/:weddingId/refresh — ręczne odświeżenie (admin)
 exports.refresh = async (req, res, next) => {
   try {
     const { weddingId } = req.params;

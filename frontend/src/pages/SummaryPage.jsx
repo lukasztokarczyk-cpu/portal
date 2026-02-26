@@ -50,6 +50,7 @@ export default function SummaryPage() {
   const [selectedWeddingId, setSelectedWeddingId] = useState(null);
   const [summary, setSummary] = useState(null);
   const [daysUntil, setDaysUntil] = useState(null);
+  const [bookedRooms, setBookedRooms] = useState([]);
   const [loading, setLoading] = useState(false);
   const [priceInput, setPriceInput] = useState('');
   const [savingPrice, setSavingPrice] = useState(false);
@@ -72,6 +73,7 @@ export default function SummaryPage() {
       .then(r => {
         setSummary(r.data.summary);
         setDaysUntil(r.data.daysUntil);
+        setBookedRooms(r.data.bookedRooms || []);
         setPriceInput(r.data.summary?.pricePerPerson ? parseFloat(r.data.summary.pricePerPerson).toString() : '');
       })
       .catch(console.error)
@@ -85,6 +87,7 @@ export default function SummaryPage() {
     try {
       const r = await api.patch(`/summary/wedding/${selectedWeddingId}/price`, { pricePerPerson: priceInput });
       setSummary(r.data.summary);
+      setBookedRooms(r.data.bookedRooms || []);
       toast.success('Cena zapisana i koszty przeliczone!');
     } catch { toast.error('Błąd'); }
     finally { setSavingPrice(false); }
@@ -96,6 +99,7 @@ export default function SummaryPage() {
       const r = await api.post(`/summary/wedding/${selectedWeddingId}/refresh`);
       setSummary(r.data.summary);
       setDaysUntil(r.data.daysUntil);
+      setBookedRooms(r.data.bookedRooms || []);
       toast.success('Podsumowanie odświeżone');
     } catch { toast.error('Błąd'); }
     finally { setLoading(false); }
@@ -230,7 +234,49 @@ export default function SummaryPage() {
             </div>
           </div>
 
-          {/* Koszty */}
+          {/* Noclegi */}
+          <div className="card">
+            <h2 className="font-bold text-gray-800 text-lg mb-4">🛏️ Noclegi</h2>
+
+            {/* Pokój Pary Młodej — zawsze */}
+            <div className="flex items-center gap-3 py-3 px-4 bg-rose-50 rounded-xl border-2 border-rose-200 mb-3">
+              <span className="text-2xl">💍</span>
+              <div>
+                <p className="font-bold text-rose-700">Pokój nr 7 — Para Młoda</p>
+                <p className="text-sm text-rose-500">Zarezerwowany na noc weselną</p>
+              </div>
+            </div>
+
+            {/* Zarezerwowane pokoje gości */}
+            {bookedRooms.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold text-gray-600 mb-2">
+                  Pokoje gości: <span className="text-gray-800">{bookedRooms.length} {bookedRooms.length === 1 ? 'pokój' : bookedRooms.length < 5 ? 'pokoje' : 'pokoi'}</span>
+                </p>
+                {bookedRooms.map((r, i) => (
+                  <div key={i} className="flex justify-between items-center py-2 px-3 bg-blue-50 rounded-lg text-sm">
+                    <div>
+                      <span className="font-semibold text-gray-800">{r.roomName}</span>
+                      {r.notes && <span className="text-gray-500 ml-2">— {r.notes}</span>}
+                    </div>
+                    <div className="text-right text-gray-500">
+                      <p>{r.guestCount} os.</p>
+                      <p className="text-xs">
+                        {new Date(r.checkIn).toLocaleDateString('pl-PL')} – {new Date(r.checkOut).toLocaleDateString('pl-PL')}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+                <div className="bg-gray-50 rounded-xl px-4 py-2 text-center mt-2">
+                  <span className="font-bold text-gray-700">Łącznie pokoi: </span>
+                  <span className="text-gray-800 font-semibold">{bookedRooms.length + 1}</span>
+                  <span className="text-gray-500 text-sm"> (w tym pokój Pary Młodej)</span>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400 italic">Brak zarezerwowanych pokoi dla gości</p>
+            )}
+          </div>
           {summary.pricePerPerson && (
             <div className="card">
               <h2 className="font-bold text-gray-800 text-lg mb-4">💵 Podsumowanie kosztów</h2>
