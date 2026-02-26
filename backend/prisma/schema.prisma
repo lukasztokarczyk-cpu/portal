@@ -46,6 +46,7 @@ model Wedding {
   weddingDate DateTime
   venueName   String   @default("Perła Pienin")
   guestCount  Int      @default(0)
+  pricePerPerson Decimal? @db.Decimal(10,2)  // cena za osobę dorosłą
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -65,6 +66,7 @@ model Wedding {
   menuConfig     WeddingMenuConfig?
   roomBookings   RoomBooking[]
   accommodationConfig AccommodationConfig?
+  summary        WeddingSummary?
 }
 
 model Stage {
@@ -82,20 +84,22 @@ model Stage {
 }
 
 model Guest {
-  id        String   @id @default(uuid())
-  weddingId String
-  wedding   Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
-  firstName String
-  lastName  String
-  isChild   Boolean  @default(false)
-  diet      String?
-  tableId   String?
-  table     TableLayout? @relation(fields: [tableId], references: [id])
-  email     String?
-  phone     String?
-  rsvp      String?  // yes / no / pending
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  weddingId   String
+  wedding     Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  firstName   String
+  lastName    String
+  isChild     Boolean  @default(false)
+  dateOfBirth DateTime?  // do podziału wiekowego
+  diet        String?    // 'standard' | 'vegetarian' | 'vegan' | 'glutenfree' | 'lactosefree' | 'glutenlactosefree' | 'other'
+  dietNotes   String?    // dodatkowe uwagi do diety
+  tableId     String?
+  table       TableLayout? @relation(fields: [tableId], references: [id])
+  email       String?
+  phone       String?
+  rsvp        String?  // yes / no / pending
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model TableLayout {
@@ -222,6 +226,49 @@ model Document {
   mimeType   String?
   uploadedBy String
   createdAt  DateTime @default(now())
+}
+
+// Podsumowanie wesela — generowane automatycznie 4 dni przed weselem
+model WeddingSummary {
+  id          String   @id @default(uuid())
+  weddingId   String   @unique
+  wedding     Wedding  @relation(fields: [weddingId], references: [id], onDelete: Cascade)
+  generatedAt DateTime @default(now())
+  isVisible   Boolean  @default(false) // true gdy 4 dni przed weselem
+
+  // Podział gości
+  adultsCount       Int @default(0)   // 10+ lat
+  children3to10     Int @default(0)   // 3-10 lat (50% ceny)
+  childrenUnder3    Int @default(0)   // 0-3 lat (gratis)
+  djCount           Int @default(0)   // DJ/Zespół/Fotograf (50% ceny)
+
+  // Diety
+  dietStandard          Int @default(0)
+  dietVegetarian        Int @default(0)
+  dietVegan             Int @default(0)
+  dietGlutenFree        Int @default(0)
+  dietLactoseFree       Int @default(0)
+  dietGlutenLactoseFree Int @default(0)
+  dietOther             Int @default(0)
+
+  // Koszty
+  pricePerPerson      Decimal? @db.Decimal(10,2)
+  baseCost            Decimal? @db.Decimal(10,2)  // dorośli * cena
+  childrenCost        Decimal? @db.Decimal(10,2)  // dzieci 3-10 * 50%
+  djCost              Decimal? @db.Decimal(10,2)  // DJ * 50%
+  cakeCost            Decimal? @db.Decimal(10,2)
+  sweetTableCost      Decimal? @db.Decimal(10,2)
+  packagesCost        Decimal? @db.Decimal(10,2)
+  totalCost           Decimal? @db.Decimal(10,2)
+
+  // Dodatkowe info
+  cakeSource          String?
+  cakeFlavors         String?
+  sweetTableChoice    String?
+  guestPackageChoice  String?
+  guestPackageCount   Int?
+
+  updatedAt DateTime @updatedAt
 }
 
 model Message {

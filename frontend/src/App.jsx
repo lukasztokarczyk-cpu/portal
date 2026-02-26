@@ -13,6 +13,7 @@ import ChatPage from './pages/ChatPage';
 import AccommodationPage from './pages/AccommodationPage';
 import AdminPage from './pages/AdminPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import SummaryPage from './pages/SummaryPage';
 
 function RequireAuth({ children, roles }) {
   const { user, loading } = useAuth();
@@ -38,6 +39,7 @@ function AppRoutes() {
         <Route path="documents" element={<DocumentsPage />} />
         <Route path="chat" element={<ChatPage />} />
         <Route path="accommodation" element={<AccommodationPage />} />
+        <Route path="summary" element={<SummaryPage />} />
         <Route path="admin" element={<RequireAuth roles={['admin']}><AdminPage /></RequireAuth>} />
       </Route>
     </Routes>

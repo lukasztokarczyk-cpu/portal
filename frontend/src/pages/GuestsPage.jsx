@@ -9,7 +9,9 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
     firstName: guest?.firstName || '',
     lastName: guest?.lastName || '',
     isChild: guest?.isChild || false,
-    diet: guest?.diet || '',
+    dateOfBirth: guest?.dateOfBirth ? guest.dateOfBirth.substring(0, 10) : '',
+    diet: guest?.diet || 'standard',
+    dietNotes: guest?.dietNotes || '',
     rsvp: guest?.rsvp || 'pending',
   });
 
@@ -47,7 +49,15 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Dieta</label>
-              <input className="input" placeholder="np. wegetariańska" value={form.diet} onChange={(e) => setForm({ ...form, diet: e.target.value })} />
+              <select className="input" value={form.diet} onChange={e => setForm({ ...form, diet: e.target.value })}>
+                <option value="standard">🍽️ Standardowa</option>
+                <option value="vegetarian">🥗 Wegetariańska</option>
+                <option value="vegan">🌱 Wegańska</option>
+                <option value="glutenfree">🌾 Bezglutenowa</option>
+                <option value="lactosefree">🥛 Bezlaktozowa</option>
+                <option value="glutenlactosefree">⚡ Bezglutenowa i bezlaktozowa</option>
+                <option value="other">📝 Inna / specjalna</option>
+              </select>
             </div>
             <div>
               <label className="label">Potwierdzenie przybycia</label>
@@ -58,10 +68,25 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
               </select>
             </div>
           </div>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input type="checkbox" className="w-4 h-4 rounded" checked={form.isChild} onChange={(e) => setForm({ ...form, isChild: e.target.checked })} />
-            <span className="text-sm text-gray-700">Dziecko</span>
-          </label>
+          {form.diet === 'other' && (
+            <div>
+              <label className="label">Uwagi do diety</label>
+              <input className="input" placeholder="np. alergia na orzechy..." value={form.dietNotes} onChange={e => setForm({ ...form, dietNotes: e.target.value })} />
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Data urodzenia</label>
+              <input type="date" className="input" value={form.dateOfBirth} onChange={e => setForm({ ...form, dateOfBirth: e.target.value })} />
+              <p className="text-xs text-gray-400 mt-0.5">Potrzebna do podziału wiekowego</p>
+            </div>
+            <div className="flex items-center pt-5">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 rounded" checked={form.isChild} onChange={(e) => setForm({ ...form, isChild: e.target.checked })} />
+                <span className="text-sm text-gray-700">👶 Dziecko</span>
+              </label>
+            </div>
+          </div>
           <div className="flex gap-2 pt-2">
             <button type="submit" className="btn-primary flex-1 justify-center">Zapisz</button>
             <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">Anuluj</button>
@@ -155,7 +180,14 @@ export default function GuestsPage() {
               <tr key={g.id} className="hover:bg-gray-50 transition-colors">
                 <td className="py-3 pr-4 font-medium text-gray-800">{g.lastName} {g.firstName}</td>
                 <td className="py-3 pr-4 text-gray-500">{g.isChild ? '👶 Dziecko' : '👤 Dorosły'}</td>
-                <td className="py-3 pr-4 text-gray-500">{g.diet || '—'}</td>
+                <td className="py-3 pr-4 text-gray-500">
+                  {g.diet === 'standard' || !g.diet ? '🍽️ Std' :
+                   g.diet === 'vegetarian' ? '🥗 Wege' :
+                   g.diet === 'vegan' ? '🌱 Vegan' :
+                   g.diet === 'glutenfree' ? '🌾 BG' :
+                   g.diet === 'lactosefree' ? '🥛 BL' :
+                   g.diet === 'glutenlactosefree' ? '⚡ BG+BL' : '📝 Inna'}
+                </td>
                 <td className="py-3 pr-4 text-gray-500">{g.table?.name || '—'}</td>
                 <td className={`py-3 pr-4 font-medium capitalize ${rsvpColor[g.rsvp] || ''}`}>{g.rsvp === 'yes' ? 'Tak' : g.rsvp === 'no' ? 'Nie' : 'Oczekuje'}</td>
                 <td className="py-3 flex gap-2 justify-end">

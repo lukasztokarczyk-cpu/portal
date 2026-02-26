@@ -13,6 +13,7 @@ const paymentRoutes = require('./routes/payment.routes');
 const documentRoutes = require('./routes/document.routes');
 const messageRoutes = require('./routes/message.routes');
 const accommodationRoutes = require('./routes/accommodation.routes');
+const summaryRoutes = require('./routes/summary.routes');
 const { errorHandler } = require('./middleware/errorHandler');
 const prisma = require('./prisma/client');
 
@@ -36,6 +37,12 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/accommodation', accommodationRoutes);
+app.use('/api/summary', summaryRoutes);
+
+// Cron — sprawdzaj co godzinę czy wesela są 4 dni przed
+const { cronCheck } = require('./controllers/summary.controller');
+setInterval(cronCheck, 60 * 60 * 1000); // co godzinę
+cronCheck(); // uruchom od razu przy starcie
 
 // Health check (używany też przez keep-alive)
 app.get('/api/health', async (req, res) => {
