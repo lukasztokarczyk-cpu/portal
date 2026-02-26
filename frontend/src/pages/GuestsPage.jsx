@@ -8,8 +8,7 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
   const [form, setForm] = useState({
     firstName: guest?.firstName || '',
     lastName: guest?.lastName || '',
-    isChild: guest?.isChild || false,
-    dateOfBirth: guest?.dateOfBirth ? guest.dateOfBirth.substring(0, 10) : '',
+    ageCategory: guest?.ageCategory || (guest?.isChild ? (guest?.ageCategory || 'child3to10') : 'adult'),
     diet: guest?.diet || 'standard',
     dietNotes: guest?.dietNotes || '',
     rsvp: guest?.rsvp || 'pending',
@@ -17,12 +16,21 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const payload = {
+      firstName: form.firstName,
+      lastName: form.lastName,
+      isChild: form.ageCategory !== 'adult',
+      ageCategory: form.ageCategory,
+      diet: form.diet,
+      dietNotes: form.dietNotes,
+      rsvp: form.rsvp,
+    };
     try {
       if (isEdit) {
-        await api.patch(`/guests/${guest.id}`, form);
+        await api.patch(`/guests/${guest.id}`, payload);
         toast.success('Gość zaktualizowany');
       } else {
-        await api.post(`/guests/wedding/${weddingId}`, form);
+        await api.post(`/guests/wedding/${weddingId}`, payload);
         toast.success('Gość dodany');
       }
       onSaved();
@@ -74,17 +82,29 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
               <input className="input" placeholder="np. alergia na orzechy..." value={form.dietNotes} onChange={e => setForm({ ...form, dietNotes: e.target.value })} />
             </div>
           )}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Data urodzenia</label>
-              <input type="date" className="input" value={form.dateOfBirth} onChange={e => setForm({ ...form, dateOfBirth: e.target.value })} />
-              <p className="text-xs text-gray-400 mt-0.5">Potrzebna do podziału wiekowego</p>
-            </div>
-            <div className="flex items-center pt-5">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded" checked={form.isChild} onChange={(e) => setForm({ ...form, isChild: e.target.checked })} />
-                <span className="text-sm text-gray-700">👶 Dziecko</span>
-              </label>
+          <div>
+            <label className="label">Kategoria wiekowa</label>
+            <div className="flex gap-2 flex-wrap mt-1">
+              {[
+                { value: 'adult',      label: '👤 Dorosły (10+ lat)',     color: 'rose' },
+                { value: 'child3to10', label: '👦 Dziecko (3–10 lat)',    color: 'amber' },
+                { value: 'childUnder3',label: '👶 Dziecko (0–3 lat)',     color: 'green' },
+              ].map(({ value, label, color }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setForm({ ...form, ageCategory: value })}
+                  className={`px-3 py-2 rounded-xl border-2 text-sm font-medium transition-all ${
+                    form.ageCategory === value
+                      ? color === 'rose' ? 'border-rose-400 bg-rose-50 text-rose-700'
+                        : color === 'amber' ? 'border-amber-400 bg-amber-50 text-amber-700'
+                        : 'border-green-400 bg-green-50 text-green-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
           </div>
           <div className="flex gap-2 pt-2">
@@ -179,7 +199,11 @@ export default function GuestsPage() {
             {filtered.map((g) => (
               <tr key={g.id} className="hover:bg-gray-50 transition-colors">
                 <td className="py-3 pr-4 font-medium text-gray-800">{g.lastName} {g.firstName}</td>
-                <td className="py-3 pr-4 text-gray-500">{g.isChild ? '👶 Dziecko' : '👤 Dorosły'}</td>
+                <td className="py-3 pr-4 text-gray-500">
+                  {g.ageCategory === 'childUnder3' ? '👶 0–3 lat' :
+                   g.ageCategory === 'child3to10' ? '👦 3–10 lat' :
+                   g.isChild ? '👦 Dziecko' : '👤 Dorosły'}
+                </td>
                 <td className="py-3 pr-4 text-gray-500">
                   {g.diet === 'standard' || !g.diet ? '🍽️ Std' :
                    g.diet === 'vegetarian' ? '🥗 Wege' :

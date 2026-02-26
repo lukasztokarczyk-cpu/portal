@@ -90,7 +90,7 @@ model Guest {
   firstName   String
   lastName    String
   isChild     Boolean  @default(false)
-  dateOfBirth DateTime?  // do podziału wiekowego
+  ageCategory String?  // 'adult' | 'child3to10' | 'childUnder3'
   diet        String?    // 'standard' | 'vegetarian' | 'vegan' | 'glutenfree' | 'lactosefree' | 'glutenlactosefree' | 'other'
   dietNotes   String?    // dodatkowe uwagi do diety
   tableId     String?

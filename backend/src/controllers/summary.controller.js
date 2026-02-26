@@ -56,18 +56,16 @@ async function generateSummary(weddingId) {
 
   // Goście
   for (const guest of wedding.guests) {
-    const age = calcAge(guest.dateOfBirth, weddingDate);
-
-    // Klasyfikacja wiekowa
-    if (guest.isChild && age !== null && age < 3) {
+    // Klasyfikacja wiekowa na podstawie ageCategory
+    if (guest.ageCategory === 'childUnder3') {
       childrenUnder3++;
-    } else if (guest.isChild && age !== null && age < 10) {
+    } else if (guest.ageCategory === 'child3to10') {
       children3to10++;
-    } else if (guest.isChild && age === null) {
-      // isChild ale bez daty — traktuj jako 3-10
-      children3to10++;
-    } else {
+    } else if (guest.ageCategory === 'adult' || !guest.isChild) {
       adultsCount++;
+    } else {
+      // isChild=true ale brak ageCategory — traktuj jako 3-10
+      children3to10++;
     }
 
     // Dieta

@@ -57,7 +57,7 @@ exports.registerCouple = async (req, res, next) => {
     });
 
     const { password: _, ...userSafe } = user;
-    res.status(201).json(userSafe);
+    res.status(201).json({ ...userSafe, weddingId: user.wedding?.id });
   } catch (err) { next(err); }
 };
 

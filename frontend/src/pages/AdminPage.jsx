@@ -4,26 +4,78 @@ import toast from 'react-hot-toast';
 
 function RegisterCoupleModal({ onClose, onSaved }) {
   const [form, setForm] = useState({ name: '', login: '', email: '', password: '', weddingDate: '' });
+  const [pricePerPerson, setPricePerPerson] = useState('');
+  const [payments, setPayments] = useState([]);
+  const [newPayment, setNewPayment] = useState({ title: '', amount: '', dueDate: '', status: 'unpaid' });
+
+  const addPayment = () => {
+    if (!newPayment.title || !newPayment.amount) return toast.error('Podaj tytuł i kwotę');
+    setPayments(p => [...p, { ...newPayment }]);
+    setNewPayment({ title: '', amount: '', dueDate: '', status: 'unpaid' });
+  };
+
+  const removePayment = (i) => setPayments(p => p.filter((_, idx) => idx !== i));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/auth/register-couple', form);
+      const res = await api.post('/auth/register-couple', form);
+      const weddingId = res.data.weddingId;
+      if (pricePerPerson && weddingId) {
+        await api.patch(`/summary/wedding/${weddingId}/price`, { pricePerPerson });
+      }
+      for (const p of payments) {
+        await api.post(`/payments/wedding/${weddingId}`, p);
+      }
       toast.success('Para zarejestrowana!');
       onSaved();
     } catch (err) { toast.error(err.response?.data?.error || 'Błąd rejestracji'); }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl">
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-xl my-4">
         <h3 className="font-bold text-lg mb-4">Zarejestruj Parę Młodą</h3>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div><label className="label">Imiona Pary *</label><input className="input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required placeholder="Anna i Piotr Nowak" /></div>
-          <div><label className="label">Login *</label><input className="input" value={form.login} onChange={e => setForm({...form, login: e.target.value})} required placeholder="np. nowakowie" /></div>
-          <div><label className="label">Email (opcjonalnie)</label><input type="email" className="input" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
-          <div><label className="label">Hasło (min. 8 znaków) *</label><input type="password" className="input" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required minLength={8} /></div>
-          <div><label className="label">Data ślubu *</label><input type="date" className="input" value={form.weddingDate} onChange={e => setForm({...form, weddingDate: e.target.value})} required /></div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Dane konta</p>
+            <div><label className="label">Imiona Pary *</label><input className="input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} required placeholder="Anna i Piotr Nowak" /></div>
+            <div><label className="label">Login *</label><input className="input" value={form.login} onChange={e => setForm({...form, login: e.target.value})} required placeholder="np. nowakowie" /></div>
+            <div><label className="label">Email (opcjonalnie)</label><input type="email" className="input" value={form.email} onChange={e => setForm({...form, email: e.target.value})} /></div>
+            <div><label className="label">Hasło (min. 8 znaków) *</label><input type="password" className="input" value={form.password} onChange={e => setForm({...form, password: e.target.value})} required minLength={8} /></div>
+            <div><label className="label">Data ślubu *</label><input type="date" className="input" value={form.weddingDate} onChange={e => setForm({...form, weddingDate: e.target.value})} required /></div>
+          </div>
+          <div className="space-y-2 pt-2 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Cena wesela</p>
+            <div className="flex items-center gap-3">
+              <input type="number" className="input w-40" placeholder="np. 350" value={pricePerPerson} onChange={e => setPricePerPerson(e.target.value)} />
+              <span className="text-gray-500 text-sm">zł / osoba dorosła</span>
+            </div>
+            <p className="text-xs text-gray-400">Dzieci 3-10 lat i DJ = 50%. Dzieci do 3 lat gratis.</p>
+          </div>
+          <div className="space-y-3 pt-2 border-t border-gray-100">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Płatności / Zaliczki</p>
+            {payments.map((p, i) => (
+              <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2 text-sm">
+                <span className="font-medium">{p.title}</span>
+                <div className="flex items-center gap-3 text-gray-500">
+                  <span>{parseFloat(p.amount).toLocaleString("pl-PL")} zł</span>
+                  <span className={p.status === "paid" ? "text-green-600" : "text-amber-500"}>{p.status === "paid" ? "✅" : "⏳"}</span>
+                  <button type="button" onClick={() => removePayment(i)} className="text-red-400 hover:text-red-600">✕</button>
+                </div>
+              </div>
+            ))}
+            <div className="grid grid-cols-2 gap-2">
+              <input className="input col-span-2" placeholder="Tytuł (np. Zaliczka)" value={newPayment.title} onChange={e => setNewPayment(p => ({...p, title: e.target.value}))} />
+              <input type="number" className="input" placeholder="Kwota (zł)" value={newPayment.amount} onChange={e => setNewPayment(p => ({...p, amount: e.target.value}))} />
+              <input type="date" className="input" value={newPayment.dueDate} onChange={e => setNewPayment(p => ({...p, dueDate: e.target.value}))} />
+              <select className="input" value={newPayment.status} onChange={e => setNewPayment(p => ({...p, status: e.target.value}))}>
+                <option value="unpaid">⏳ Oczekuje</option>
+                <option value="paid">✅ Opłacona</option>
+              </select>
+              <button type="button" onClick={addPayment} className="btn-secondary text-sm">+ Dodaj płatność</button>
+            </div>
+          </div>
           <div className="flex gap-2 pt-2">
             <button type="submit" className="btn-primary flex-1">Zarejestruj</button>
             <button type="button" onClick={onClose} className="btn-secondary flex-1">Anuluj</button>
