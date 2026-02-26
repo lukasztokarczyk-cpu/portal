@@ -3,13 +3,11 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 
 const navItems = [
-  { to: '/', label: 'Dashboard', icon: '🏠', roles: ['admin', 'coordinator', 'couple'] },
-  { to: '/stages', label: 'Harmonogram', icon: '📋', roles: ['admin', 'coordinator', 'couple'] },
+  { to: '/', label: 'Przygotowania', icon: '💍', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/guests', label: 'Goście', icon: '👥', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/tables', label: 'Plan stołów', icon: '🪑', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/menu', label: 'Menu', icon: '🍽️', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/payments', label: 'Płatności', icon: '💳', roles: ['admin', 'coordinator', 'couple'] },
-  { to: '/documents', label: 'Dokumenty', icon: '📄', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/accommodation', label: 'Noclegi', icon: '🛏️', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/summary', label: 'Podsumowanie', icon: '📊', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/wedding-plan', label: 'Plan wesela', icon: '📅', roles: ['admin', 'coordinator', 'couple'] },
