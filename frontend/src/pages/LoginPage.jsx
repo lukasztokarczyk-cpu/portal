@@ -34,9 +34,9 @@ export default function LoginPage() {
         .lp-d{position:absolute;height:1px;left:0;right:0;background:rgba(176,138,80,.15)}
         .lp-d.t{top:130px}.lp-d.b{bottom:100px}
         .lp-s{position:relative;z-index:1}
-        .lp-img{height:64px;width:auto;object-fit:contain;object-position:left;opacity:.9}
+        .lp-img{width:100%;max-width:260px;height:auto;object-fit:contain;object-position:left;opacity:.92;display:block}
         .lp-dv{width:100%;height:1px;background:rgba(176,138,80,.25);margin:14px 0}
-        .lp-an{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;color:rgba(240,235,224,.75);letter-spacing:1px;margin-top:28px}
+        .lp-an{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;color:rgba(240,235,224,.75);letter-spacing:1px;margin-bottom:4px}
         .lp-an span{font-style:italic;color:#b08a50}
         .lp-q{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:38px;font-weight:300;color:#f0ebe0;line-height:1.35;margin-bottom:18px}
         .lp-q em{color:#b08a50;font-style:normal}
@@ -79,9 +79,9 @@ export default function LoginPage() {
           <div className="lp-d t" />
           <div className="lp-d b" />
           <div className="lp-s">
-            <img src={LOGO} alt="Pensjonat Perla Pienin" className="lp-img" />
-            <div className="lp-dv" />
             <p className="lp-an">Strefa <span>Państwa Młodych</span></p>
+            <div className="lp-dv" />
+            <img src={LOGO} alt="Pensjonat Perla Pienin" className="lp-img" />
           </div>
           <div className="lp-s">
             <div className="lp-q">Twój ślub,<br /><em>Twoje zasady.</em></div>
