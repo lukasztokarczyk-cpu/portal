@@ -133,18 +133,20 @@ export default function SummaryPage() {
       </div>
 
       {/* Para — informacja jeśli za wcześnie */}
-      {isCouple && !coupleCanSee && (
-        <div className="card border-2 border-amber-100 bg-amber-50 text-center py-10">
-          <p className="text-4xl mb-3">📅</p>
-          <h2 className="font-bold text-gray-800 text-lg">Podsumowanie będzie dostępne</h2>
-          <p className="text-gray-500 mt-1">
-            {daysUntil !== null ? `Za ${daysUntil} dni (4 dni przed weselem)` : 'Wkrótce przed weselem'}
-          </p>
+      {isCouple && !summary?.isVisible && daysUntil > 4 && (
+        <div className="card border-2 border-blue-100 bg-blue-50 text-center py-4">
+          <p className="text-sm text-blue-700">📅 Podsumowanie będzie zatwierdzone na <strong>{daysUntil - 4} dni</strong> przed weselem</p>
+        </div>
+      )}
+      {summary?.isVisible && (
+        <div className="card border-2 border-green-200 bg-green-50 text-center py-3">
+          <p className="font-bold text-green-700">✅ Podsumowanie finalne — zatwierdzone</p>
+          <p className="text-sm text-green-600 mt-0.5">To jest oficjalne podsumowanie Waszego wesela</p>
         </div>
       )}
 
       {/* Treść podsumowania */}
-      {(isAdmin || coupleCanSee) && summary && !loading && (
+      {summary && !loading && (
         <>
           {/* Ustawienie ceny — tylko admin */}
           {isAdmin && (
