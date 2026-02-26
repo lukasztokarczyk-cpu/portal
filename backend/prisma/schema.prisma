@@ -260,6 +260,8 @@ model WeddingSummary {
   sweetTableCost      Decimal? @db.Decimal(10,2)
   packagesCost        Decimal? @db.Decimal(10,2)
   totalCost           Decimal? @db.Decimal(10,2)
+  paidAmount          Decimal? @db.Decimal(10,2)  // suma wpłaconych zaliczek
+  remainingCost       Decimal? @db.Decimal(10,2)  // pozostało do zapłaty
 
   // Dodatkowe info
   cakeSource          String?

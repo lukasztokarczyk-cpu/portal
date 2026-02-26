@@ -33,10 +33,14 @@ function StatBox({ label, value, sub, color = 'rose' }) {
 
 function CostRow({ label, value, highlight }) {
   if (value === null || value === undefined) return null;
+  const num = parseFloat(value);
+  const isNegative = num < 0;
   return (
-    <div className={`flex justify-between items-center py-2 px-3 rounded-lg ${highlight ? 'bg-rose-50 font-bold text-rose-700' : 'text-gray-700'}`}>
+    <div className={`flex justify-between items-center py-2 px-3 rounded-lg ${highlight ? 'bg-rose-50 font-bold text-rose-700' : isNegative ? 'bg-green-50 text-green-700' : 'text-gray-700'}`}>
       <span>{label}</span>
-      <span className="font-semibold">{parseFloat(value).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł</span>
+      <span className="font-semibold">
+        {isNegative ? '−' : ''}{Math.abs(num).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł
+      </span>
     </div>
   );
 }
@@ -297,6 +301,12 @@ export default function SummaryPage() {
                 <div className="border-t border-gray-200 mt-2 pt-2">
                   <CostRow label="💰 RAZEM" value={summary.totalCost} highlight />
                 </div>
+                {summary.paidAmount > 0 && (
+                  <div className="border-t border-gray-200 mt-1 pt-1 space-y-1">
+                    <CostRow label="✅ Wpłacone zaliczki" value={-summary.paidAmount} />
+                    <CostRow label="⏳ Pozostało do zapłaty" value={summary.remainingCost} highlight />
+                  </div>
+                )}
               </div>
             </div>
           )}

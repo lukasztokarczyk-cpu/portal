@@ -25,6 +25,10 @@ async function generateSummary(weddingId) {
           room: { select: { id: true, name: true, capacity: true } },
         },
       },
+      payments: {
+        where: { status: 'paid' },
+        select: { amount: true, title: true },
+      },
     },
   });
   if (!wedding) throw new Error('Wesele nie znalezione');
@@ -105,6 +109,9 @@ async function generateSummary(weddingId) {
       + (packagesCost || 0);
   }
 
+  // Wpłacone zaliczki
+  const paidAmount = wedding.payments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
   // Noclegi
   const bookedRooms = wedding.roomBookings.map(b => ({
     roomName: b.room.name,
@@ -136,6 +143,8 @@ async function generateSummary(weddingId) {
     sweetTableCost,
     packagesCost,
     totalCost,
+    paidAmount: pricePerPerson ? paidAmount : null,
+    remainingCost: pricePerPerson && totalCost ? totalCost - paidAmount : null,
     cakeSource: menuConfig?.cakeSource || null,
     cakeFlavors: menuConfig?.cakeFlavors || null,
     sweetTableChoice: menuConfig?.sweetTableChoice || null,
