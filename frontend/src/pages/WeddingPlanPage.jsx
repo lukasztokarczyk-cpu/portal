@@ -329,7 +329,6 @@ Trasy:
           {[
             { key: 'dessert1', label: 'Po obiedzie (~1,5h)', note: 'Pierwsze danie weselne' },
             { key: 'dessert2', label: 'Po 1. kolacji (~1h)', note: 'Wieczorny posiłek' },
-            { key: 'dessert3', label: 'Po 2. kolacji (~1h)', note: 'Nocna kolacja' },
           ].map(({ key, label, note }) => (
             <div key={key}>
               <label className="label">{label}</label>
