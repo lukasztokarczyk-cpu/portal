@@ -107,7 +107,7 @@ Trasy:
     const arrivalVenue = addMins(ceremonyEnd, ctv);
 
     // Powitanie 20 min, toast szampana
-    const welcomeToast = addMins(arrivalVenue, 20);
+    const welcomeToast = addMins(arrivalVenue, 5);
 
     // Obiad 15 min po powitaniu
     const dinnerTime = addMins(welcomeToast, 15);
@@ -156,7 +156,7 @@ Trasy:
       { time: ceremonyEnd, label: 'Wyjście z kościoła', category: 'ceremony', note: `Dojazd do sali: ~${ctv} min` },
       // Przyjazd
       { time: arrivalVenue, label: `Przybycie do ${VENUE_LABEL}`, category: 'venue', note: '⏱️ Orientacyjna godzina przybycia' },
-      { time: arrivalVenue, label: 'Powitanie Pary Młodej chlebem i solą', category: 'welcome', note: '~20 minut' },
+      { time: arrivalVenue, label: 'Powitanie Pary Młodej chlebem i solą', category: 'welcome', note: '~5 minut' },
       { time: welcomeToast, label: 'Toast za Państwa Młodych 🥂', category: 'welcome', note: 'Kieliszki szampana' },
       // Obiad
       { time: dinnerTime, label: 'Obiad weselny', category: 'meal', note: '🍲 Orientacyjna godzina — może się zmienić' },
