@@ -36,12 +36,12 @@ export default function LoginPage() {
         .lp-s{position:relative;z-index:1;overflow:hidden;min-width:0}
         .lp-logo-wrap{width:100%;overflow:hidden}.lp-img{width:100%;height:auto;display:block;opacity:.92;object-fit:contain;object-position:left}
         .lp-dv{width:100%;height:1px;background:rgba(176,138,80,.25);margin:14px 0}
-        .lp-an{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;color:rgba(240,235,224,.75);letter-spacing:1px;margin-bottom:4px}
+        .lp-an{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;color:rgba(240,235,224,.75);letter-spacing:1px;margin-bottom:4px;text-align:center}
         .lp-an span{font-style:italic;color:#b08a50}
-        .lp-q{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:38px;font-weight:300;color:#f0ebe0;line-height:1.35;margin-bottom:18px}
+        .lp-q{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:38px;font-weight:300;color:#f0ebe0;line-height:1.35;margin-bottom:18px;text-align:center}
         .lp-q em{color:#b08a50;font-style:normal}
-        .lp-sb{font-size:13px;font-weight:300;color:rgba(240,235,224,.82);letter-spacing:.5px;line-height:1.7;max-width:280px}
-        .lp-rg{display:flex;align-items:center;gap:16px;position:relative}
+        .lp-sb{font-size:13px;font-weight:300;color:rgba(240,235,224,.82);letter-spacing:.5px;line-height:1.7;max-width:280px;text-align:center;margin:0 auto}
+        .lp-rg{display:flex;align-items:center;justify-content:center;gap:16px;position:relative}
         .lp-rg::after{content:'';position:absolute;bottom:-10px;left:0;width:220px;height:18px;background:radial-gradient(ellipse at center,rgba(176,138,80,.45) 0%,transparent 70%);filter:blur(6px);pointer-events:none}
         .lp-rsvg{opacity:.35}
         .lp-rt{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:rgba(240,235,224,.78);letter-spacing:1px}
@@ -80,10 +80,7 @@ export default function LoginPage() {
           <div className="lp-d b" />
           <div className="lp-s">
             <p className="lp-an">Strefa <span>Państwa Młodych</span></p>
-            <div className="lp-dv" />
-            <div className="lp-logo-wrap">
-              <img src={LOGO} alt="Pensjonat Perła Pienin" className="lp-img" />
-            </div>
+
           </div>
           <div className="lp-s">
             <div className="lp-q">Twój ślub,<br /><em>Twoje zasady.</em></div>
