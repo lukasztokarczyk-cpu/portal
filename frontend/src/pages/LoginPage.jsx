@@ -29,12 +29,12 @@ export default function LoginPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap');
         .lp{font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;overflow:visible}
-        .lp-l{width:45%;background:#0a0e1a;position:relative;display:flex;flex-direction:column;justify-content:flex-start;gap:40px;padding:48px;overflow:visible;animation:lpfi .8s ease both}
+        .lp-l{width:45%;background:#0a0e1a;position:relative;display:flex;flex-direction:column;justify-content:flex-start;gap:40px;padding:40px 36px;overflow:visible;animation:lpfi .8s ease both}
         .lp-l::before{content:'';position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse at 30% 70%,rgba(100,130,200,.15) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(80,110,180,.08) 0%,transparent 50%);pointer-events:none}
         .lp-d{position:absolute;height:1px;left:0;right:0;background:rgba(176,138,80,.15);z-index:0}
         .lp-d.t{top:130px}.lp-d.b{bottom:100px}
-        .lp-s{position:relative;z-index:1;overflow:visible}
-        .lp-img{width:100%;max-width:280px;height:auto;object-fit:contain;object-fit:scale-down;object-position:left top;opacity:.92;display:block;margin-top:4px}
+        .lp-s{position:relative;z-index:1;overflow:hidden;min-width:0}
+        .lp-logo-wrap{width:100%;overflow:hidden}.lp-img{width:100%;height:auto;display:block;opacity:.92;object-fit:contain;object-position:left}
         .lp-dv{width:100%;height:1px;background:rgba(176,138,80,.25);margin:14px 0}
         .lp-an{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;color:rgba(240,235,224,.75);letter-spacing:1px;margin-bottom:4px}
         .lp-an span{font-style:italic;color:#b08a50}
@@ -66,7 +66,7 @@ export default function LoginPage() {
         @keyframes lpfu{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
         @media(max-width:700px){
           .lp{flex-direction:column}
-          .lp-l{width:100%;min-height:180px;padding:32px}
+          .lp-l{width:100%;min-height:180px;padding:24px}
           .lp-q{font-size:26px}
           .lp-rg{display:none}
           .lp-r{padding:32px 24px}
@@ -81,7 +81,9 @@ export default function LoginPage() {
           <div className="lp-s">
             <p className="lp-an">Strefa <span>Państwa Młodych</span></p>
             <div className="lp-dv" />
-            <img src={LOGO} alt="Pensjonat Perla Pienin" className="lp-img" />
+            <div className="lp-logo-wrap">
+              <img src={LOGO} alt="Pensjonat Perla Pienin" className="lp-img" />
+            </div>
           </div>
           <div className="lp-s">
             <div className="lp-q">Twój ślub,<br /><em>Twoje zasady.</em></div>
