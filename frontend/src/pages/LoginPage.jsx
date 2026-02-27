@@ -29,14 +29,14 @@ export default function LoginPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&display=swap');
         .lp{font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;overflow:visible}
-        .lp-l{width:45%;background:#0a0e1a;position:relative;display:flex;flex-direction:column;justify-content:flex-start;gap:40px;padding:40px 36px;overflow:visible;animation:lpfi .8s ease both}
+        .lp-l{width:45%;background:#0a0e1a;position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:52px 48px;overflow:hidden;animation:lpfi .8s ease both;text-align:center}.lp-top{display:flex;flex-direction:column;align-items:center;gap:14px}.lp-mid{display:flex;flex-direction:column;align-items:center;gap:20px}.lp-bot{display:flex;flex-direction:column;align-items:center;gap:14px}.lp-gold-line{width:80%;height:1px;background:linear-gradient(90deg,transparent 0%,#b08a50 30%,#b08a50 70%,transparent 100%);opacity:.85}.lp-gold-dot-line{display:flex;align-items:center;gap:8px;width:65%;margin:0 auto}.lp-gdl-line{flex:1;height:1px;background:#b08a50;opacity:.5}.lp-gdl-dot{width:4px;height:4px;border-radius:50%;background:#b08a50;flex-shrink:0}
         .lp-l::before{content:'';position:absolute;inset:0;z-index:0;background:radial-gradient(ellipse at 30% 70%,rgba(100,130,200,.15) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(80,110,180,.08) 0%,transparent 50%);pointer-events:none}
         .lp-d{position:absolute;height:1px;left:0;right:0;background:rgba(176,138,80,.15);z-index:0}
         .lp-d.t{top:130px}.lp-d.b{bottom:100px}
         .lp-s{position:relative;z-index:1;overflow:hidden;min-width:0}
         .lp-logo-wrap{width:100%;overflow:hidden}.lp-img{width:100%;height:auto;display:block;opacity:.92;object-fit:contain;object-position:left}
         .lp-dv{width:100%;height:1px;background:rgba(176,138,80,.25);margin:14px 0}
-        .lp-an{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;color:rgba(240,235,224,.75);letter-spacing:1px;margin-bottom:4px;text-align:center}
+        .lp-an{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;color:rgba(240,235,224,.8);letter-spacing:2px;text-align:center;text-transform:uppercase}
         .lp-an span{font-style:italic;color:#b08a50}
         .lp-q{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:38px;font-weight:300;color:#f0ebe0;line-height:1.35;margin-bottom:18px;text-align:center}
         .lp-q em{color:#b08a50;font-style:normal}
