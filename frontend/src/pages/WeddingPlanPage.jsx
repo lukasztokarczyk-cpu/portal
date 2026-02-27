@@ -20,7 +20,7 @@ function isNextDay(time) {
 
 const ICONS = {
   travel: '🚗', ceremony: '💍', venue: '🏛️',
-  welcome: '🥂', meal: '🍽️', dessert: '🎂', end: '🌅',
+  welcome: '🥂', meal: '🍽️', dessert: '🎂', party: '🎊', end: '🌅',
 };
 const COLORS = {
   travel:   'border-blue-300 bg-blue-50',
@@ -29,6 +29,7 @@ const COLORS = {
   welcome:  'border-pink-300 bg-pink-50',
   meal:     'border-amber-300 bg-amber-50',
   dessert:  'border-orange-300 bg-orange-50',
+  party:    'border-violet-300 bg-violet-50',
   end:      'border-green-300 bg-green-50',
 };
 
@@ -38,7 +39,11 @@ export default function WeddingPlanPage() {
   const [form, setForm] = useState({
     groomCity: '', brideCity: '', churchCity: '',
     ceremonyTime: '14:00',
-    dessert1: 'tort', dessert2: 'deser', dessert3: 'tort',
+    dessert1: 'tort', dessert2: 'deser',
+    groomDrink: 'szampan', brideDrink: 'szampan',
+    vodkaService: 'obsługa', vodkaTiming: 'przed',
+    wishTiming: 'po',
+    oczepiny: 'tak',
   });
   const [travelTimes, setTravelTimes] = useState({
     groomToChurch: 30, brideToChurch: 20, churchToVenue: 45,
@@ -171,7 +176,24 @@ Trasy:
       { time: warm2, label: '2. ciepłe danie', category: 'meal', note: '🍖 Orientacyjna godzina' },
       // 3. kolacja
       { time: warm3, label: '3. ciepłe danie — ranny posiłek', category: 'meal', note: '🌙 Orientacyjna godzina' },
-      // Koniec — zawsze na końcu (06:00 > 05:00 więc zostanie posortowany po wszystkim)
+      // Napoje powitalne — szczegóły przy powitaniu (nota w welcome event)
+      { time: arrivalVenue, label: 'Kieliszki powitalne', category: 'welcome',
+        note: `🤵 Pan Młody: ${form.groomDrink} | 👰 Pani Młoda: ${form.brideDrink}` },
+      // Wódka
+      { time: form.vodkaTiming === 'przed' ? addMins(dinnerTime, -5) : addMins(dinnerTime, 65),
+        label: 'Wódka', category: 'welcome',
+        note: `${form.vodkaService === 'obsługa' ? '🧑‍🍳 Roznosi obsługa' : '🪄 Do dyspozycji gości'} — ${form.vodkaTiming === 'przed' ? 'przed obiadem' : 'po obiedzie'}` },
+      // Życzenia
+      ...(form.wishTiming === 'przed'
+        ? [{ time: addMins(dinnerTime, -10), label: 'Życzenia dla Pary Młodej', category: 'welcome', note: '💐 Przed obiadem' }]
+        : [{ time: dinnerEnd, label: 'Życzenia dla Pary Młodej', category: 'welcome', note: '💐 Po obiedzie' }]
+      ),
+      // Oczepiny
+      ...(form.oczepiny === 'tak'
+        ? [{ time: '00:00', label: 'Oczepiny! 🎊', category: 'party', note: 'Tradycyjne oczepiny weselne — północ' }]
+        : []
+      ),
+      // Koniec
       { time: '05:00', label: 'Zakończenie przyjęcia weselnego', category: 'end', note: '🌅 Do zobaczenia!' },
     ];
 
@@ -349,6 +371,121 @@ Trasy:
           ))}
           <div className="flex gap-2">
             <button className="btn-secondary flex-1 justify-center" onClick={() => setStep(2)}>← Wróć</button>
+            <button className="btn-primary flex-1 justify-center" onClick={() => setStep('3b')}>
+              Dalej →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* KROK 3b — Napoje, wódka, życzenia, oczepiny */}
+      {step === '3b' && (
+        <div className="card space-y-6">
+          <h2 className="font-bold text-gray-800 text-lg">🥂 Szczegóły przyjęcia</h2>
+
+          {/* Kieliszki powitalne */}
+          <div>
+            <p className="label mb-3">🥂 Kieliszki powitalne — Państwo Młodzi</p>
+            <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+              {[
+                { who: 'groomDrink', label: '🤵 Pan Młody' },
+                { who: 'brideDrink', label: '👰 Pani Młoda' },
+              ].map(({ who, label }) => (
+                <div key={who}>
+                  <p className="text-sm text-gray-600 mb-2 font-medium">{label}</p>
+                  <div className="flex gap-2 flex-wrap">
+                    {[
+                      { value: 'szampan', emoji: '🥂', text: 'Szampan' },
+                      { value: 'bezalkoholowy', emoji: '🍹', text: 'Bezalkoholowy' },
+                      { value: 'wodka', emoji: '🥃', text: 'Wódka' },
+                      { value: 'woda', emoji: '💧', text: 'Woda' },
+                    ].map(({ value, emoji, text }) => (
+                      <button key={value} type="button" onClick={() => set(who, value)}
+                        className={`flex-1 py-2 px-2 rounded-xl border-2 text-xs font-medium transition-all ${form[who] === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                        {emoji} {text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Wódka */}
+          <div>
+            <p className="label mb-3">🥃 Wódka — serwowanie</p>
+            <div className="space-y-2">
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Kto roznosi?</p>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'obsługa', text: '🧑‍🍳 Obsługa roznosi' },
+                    { value: 'samodzielnie', text: '🪄 Goście sami' },
+                  ].map(({ value, text }) => (
+                    <button key={value} type="button" onClick={() => set('vodkaService', value)}
+                      className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all ${form.vodkaService === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 mb-2 mt-2">Kiedy?</p>
+                <div className="flex gap-2">
+                  {[
+                    { value: 'przed', text: '🍽️ Przed obiadem' },
+                    { value: 'po', text: '🍽️ Po obiedzie' },
+                  ].map(({ value, text }) => (
+                    <button key={value} type="button" onClick={() => set('vodkaTiming', value)}
+                      className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all ${form.vodkaTiming === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                      {text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Życzenia */}
+          <div>
+            <p className="label mb-1">💐 Życzenia dla Pary Młodej</p>
+            <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mb-3">
+              💡 <strong>Proponujemy po obiedzie</strong> — każdy jest głodny i chce najpierw zjeść!
+            </p>
+            <div className="flex gap-2">
+              {[
+                { value: 'przed', text: '🍽️ Przed obiadem' },
+                { value: 'po', text: '✅ Po obiedzie (zalecane)' },
+              ].map(({ value, text }) => (
+                <button key={value} type="button" onClick={() => set('wishTiming', value)}
+                  className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all ${form.wishTiming === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  {text}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Oczepiny */}
+          <div>
+            <p className="label mb-3">🎊 Oczepiny</p>
+            <div className="flex gap-2">
+              {[
+                { value: 'tak', text: '✅ Tak — o północy (00:00)' },
+                { value: 'nie', text: '❌ Nie' },
+              ].map(({ value, text }) => (
+                <button key={value} type="button" onClick={() => set('oczepiny', value)}
+                  className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all ${form.oczepiny === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  {text}
+                </button>
+              ))}
+            </div>
+            {form.oczepiny === 'tak' && (
+              <p className="text-xs text-gray-500 mt-2 text-center">🎊 Oczepiny zostaną dodane do harmonogramu o godzinie 00:00</p>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <button className="btn-secondary flex-1 justify-center" onClick={() => setStep(3)}>← Wróć</button>
             <button className="btn-primary flex-1 justify-center" onClick={buildSchedule}>
               📋 Generuj harmonogram →
             </button>
