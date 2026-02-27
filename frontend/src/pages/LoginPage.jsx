@@ -41,7 +41,7 @@ export default function LoginPage() {
         .lp-q{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:38px;font-weight:300;color:#f0ebe0;line-height:1.35;margin-bottom:18px;text-align:center}
         .lp-q em{color:#b08a50;font-style:normal}
         .lp-sb{font-size:13px;font-weight:300;color:rgba(240,235,224,.82);letter-spacing:.5px;line-height:1.7;max-width:280px;text-align:center;margin:0 auto}
-        .lp-rg{display:flex;align-items:center;justify-content:center;gap:16px;position:relative}
+        .lp-rg{display:flex;align-items:center;justify-content:center;gap:12px}
         .lp-rg::after{content:'';position:absolute;bottom:-10px;left:0;width:220px;height:18px;background:radial-gradient(ellipse at center,rgba(176,138,80,.45) 0%,transparent 70%);filter:blur(6px);pointer-events:none}
         .lp-rsvg{opacity:.35}
         .lp-rt{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;color:rgba(240,235,224,.78);letter-spacing:1px}
@@ -76,25 +76,38 @@ export default function LoginPage() {
       <div className="lp">
 
         <div className="lp-l">
-          <div className="lp-d t" />
-          <div className="lp-d b" />
-          <div className="lp-s">
-            <p className="lp-an">Strefa <span>Państwa Młodych</span></p>
 
+          {/* Góra — Strefa Państwa Młodych */}
+          <div className="lp-top">
+            <div className="lp-gold-line" />
+            <p className="lp-an">Strefa <span>Państwa Młodych</span></p>
+            <div className="lp-gold-line" />
           </div>
-          <div className="lp-s">
+
+          {/* Środek — główny cytat */}
+          <div className="lp-mid">
+            <div className="lp-gold-dot-line">
+              <div className="lp-gdl-line" /><div className="lp-gdl-dot" /><div className="lp-gdl-line" />
+            </div>
             <div className="lp-q">Twój ślub,<br /><em>Twoje zasady.</em></div>
-            <p className="lp-sb">Wszystko, czego potrzebujesz do planowania wymarzonego wesela– w jednym miejscu.</p>
+            <p className="lp-sb">Wszystko, czego potrzebujesz do planowania wymarzonego wesela&nbsp;— w jednym miejscu.</p>
+            <div className="lp-gold-dot-line">
+              <div className="lp-gdl-line" /><div className="lp-gdl-dot" /><div className="lp-gdl-line" />
+            </div>
           </div>
-          <div className="lp-s">
+
+          {/* Dół — obrączki i hasło */}
+          <div className="lp-bot">
             <div className="lp-rg">
-              <svg className="lp-rsvg" width="48" height="24" viewBox="0 0 48 24" fill="none">
+              <svg className="lp-rsvg" width="36" height="18" viewBox="0 0 48 24" fill="none">
                 <circle cx="16" cy="12" r="10" stroke="#b08a50" strokeWidth="1.5"/>
                 <circle cx="32" cy="12" r="10" stroke="#b08a50" strokeWidth="1.5"/>
               </svg>
               <span className="lp-rt">Twoja historia zaczyna się tutaj</span>
             </div>
+            <div className="lp-gold-line" style={{marginTop: '16px'}} />
           </div>
+
         </div>
 
         <div className="lp-r">
