@@ -17,11 +17,13 @@ import SummaryPage from './pages/SummaryPage';
 import WeddingPlanPage from './pages/WeddingPlanPage';
 import VenueVisualizationPage from './pages/VenueVisualizationPage';
 
-function RequireAuth({ children, roles }) {
+function RequireAuth({ children, roles, logins }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="flex h-screen items-center justify-center"><div className="animate-spin w-8 h-8 border-4 border-rose-500 border-t-transparent rounded-full" /></div>;
   if (!user) return <Navigate to="/login" replace />;
-  if (roles && !roles.includes(user.role)) return <Navigate to="/" replace />;
+  const roleOk = roles && roles.includes(user.role);
+  const loginOk = logins && logins.includes(user.login);
+  if ((roles || logins) && !roleOk && !loginOk) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -43,7 +45,7 @@ function AppRoutes() {
         <Route path="accommodation" element={<AccommodationPage />} />
         <Route path="summary" element={<SummaryPage />} />
         <Route path="wedding-plan" element={<WeddingPlanPage />} />
-        <Route path="venue" element={<VenueVisualizationPage />} />
+        <Route path="venue" element={<RequireAuth roles={['admin']} logins={['test']}><VenueVisualizationPage /></RequireAuth>} />
         <Route path="admin" element={<RequireAuth roles={['admin']}><AdminPage /></RequireAuth>} />
       </Route>
     </Routes>

@@ -11,7 +11,7 @@ const navItems = [
   { to: '/accommodation', label: 'Noclegi', icon: '🛏️', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/summary', label: 'Podsumowanie', icon: '📊', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/wedding-plan', label: 'Plan wesela', icon: '📅', roles: ['admin', 'coordinator', 'couple'] },
-  { to: '/venue', label: 'Wizualizacja sali', icon: '🌹', roles: ['admin', 'coordinator', 'couple'] },
+  { to: '/venue', label: 'Wizualizacja sali', icon: '🌹', roles: ['admin'], logins: ['test'] },
   { to: '/chat', label: 'Wiadomości', icon: '💬', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/admin', label: 'Zarządzanie', icon: '⚙️', roles: ['admin'] },
 ];
@@ -23,7 +23,10 @@ export default function Layout() {
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
-  const visibleNav = navItems.filter(item => item.roles.includes(user?.role));
+  const visibleNav = navItems.filter(item =>
+    item.roles.includes(user?.role) ||
+    (item.logins && item.logins.includes(user?.login))
+  );
 
   const roleName = user?.role === 'couple' ? 'Para Młoda' : user?.role === 'coordinator' ? 'Koordynator' : 'Administrator';
 
