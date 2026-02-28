@@ -15,6 +15,7 @@ import AdminPage from './pages/AdminPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import SummaryPage from './pages/SummaryPage';
 import WeddingPlanPage from './pages/WeddingPlanPage';
+import VenueVisualizationPage from './pages/VenueVisualizationPage';
 
 function RequireAuth({ children, roles }) {
   const { user, loading } = useAuth();
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="accommodation" element={<AccommodationPage />} />
         <Route path="summary" element={<SummaryPage />} />
         <Route path="wedding-plan" element={<WeddingPlanPage />} />
+        <Route path="venue" element={<VenueVisualizationPage />} />
         <Route path="admin" element={<RequireAuth roles={['admin']}><AdminPage /></RequireAuth>} />
       </Route>
     </Routes>
