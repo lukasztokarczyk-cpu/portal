@@ -30,92 +30,105 @@ export default function Layout() {
 
   const roleName = user?.role === 'couple' ? 'Para Młoda' : user?.role === 'coordinator' ? 'Koordynator' : 'Administrator';
 
-  return (
-    <div className="flex h-screen bg-gray-50">
+  const sidebarStyles = {
+    sidebar: { background: '#0a0e1a', borderRight: '1px solid rgba(176,138,80,.15)' },
+    header:  { borderBottom: '1px solid rgba(176,138,80,.15)', padding: '24px 20px 20px' },
+    title:   { fontFamily: "'Cormorant Garamond', serif", fontSize: '20px', fontWeight: 400, color: '#f0ebe0', letterSpacing: '1px' },
+    sub:     { fontSize: '10px', color: 'rgba(176,138,80,.9)', letterSpacing: '2px', textTransform: 'uppercase', marginTop: '3px' },
+    goldLine:{ height: '1px', background: 'linear-gradient(90deg, transparent, #b08a50 40%, #b08a50 60%, transparent)', opacity: .4, margin: '0 20px' },
+    navItem: { display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 16px', margin: '1px 8px', borderRadius: '4px', fontSize: '13px', fontWeight: 300, color: 'rgba(240,235,224,.65)', letterSpacing: '.3px', transition: 'all .15s', cursor: 'pointer', textDecoration: 'none' },
+    navActive:{ background: 'rgba(176,138,80,.12)', color: '#f0ebe0', borderLeft: '2px solid #b08a50', paddingLeft: '14px' },
+    navHover: { background: 'rgba(255,255,255,.04)', color: 'rgba(240,235,224,.9)' },
+    footer:  { borderTop: '1px solid rgba(176,138,80,.15)', padding: '16px 8px' },
+    userName:{ fontSize: '13px', color: '#f0ebe0', fontWeight: 400, padding: '4px 16px' },
+    userRole:{ fontSize: '10px', color: 'rgba(176,138,80,.85)', letterSpacing: '1.5px', textTransform: 'uppercase', padding: '0 16px 8px' },
+    logout:  { display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '9px 16px', margin: '0 0', borderRadius: '4px', fontSize: '12px', color: 'rgba(240,235,224,.45)', letterSpacing: '1px', textTransform: 'uppercase', transition: 'all .15s', cursor: 'pointer', background: 'none', border: 'none' },
+  };
 
-      {/* ── DESKTOP SIDEBAR (md+) ── */}
-      <aside className="hidden md:flex w-64 bg-white border-r border-gray-100 flex-col shadow-sm shrink-0">
-        <div className="px-6 py-5 border-b border-gray-100">
-          <h1 className="text-lg font-bold text-rose-700">Perła Pienin</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Strefa Pary Młodej</p>
+  const NavItem = ({ item, showLabel = true }) => (
+    <NavLink
+      to={item.to}
+      end={item.to === '/'}
+      onClick={() => setMobileOpen(false)}
+      style={({ isActive }) => ({ ...sidebarStyles.navItem, ...(isActive ? sidebarStyles.navActive : {}) })}
+      onMouseEnter={e => { if (!e.currentTarget.style.borderLeft) { e.currentTarget.style.background = 'rgba(255,255,255,.04)'; e.currentTarget.style.color = 'rgba(240,235,224,.9)'; }}}
+      onMouseLeave={e => { if (!e.currentTarget.style.borderLeft) { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'rgba(240,235,224,.65)'; }}}
+    >
+      <span style={{ fontSize: '15px', flexShrink: 0 }}>{item.icon}</span>
+      {showLabel && <span>{item.label}</span>}
+    </NavLink>
+  );
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', background: '#f8f6f3' }}>
+
+      {/* ── DESKTOP SIDEBAR ── */}
+      <aside className="hidden md:flex flex-col shrink-0" style={{ ...sidebarStyles.sidebar, width: '220px' }}>
+        {/* Logo / Tytuł */}
+        <div style={sidebarStyles.header}>
+          <div style={sidebarStyles.title}>Perła Pienin</div>
+          <div style={sidebarStyles.sub}>Strefa Pary Młodej</div>
         </div>
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {visibleNav.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${isActive ? 'bg-rose-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50'}`
-              }
-            >
-              <span className="text-base">{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
+        <div style={sidebarStyles.goldLine} />
+
+        {/* Nav */}
+        <nav style={{ flex: 1, padding: '12px 0', overflowY: 'auto' }}>
+          {visibleNav.map(item => <NavItem key={item.to} item={item} />)}
         </nav>
-        <div className="px-3 py-4 border-t border-gray-100">
-          <div className="px-3 py-2 mb-2">
-            <p className="text-sm font-medium text-gray-800 truncate">{user?.name}</p>
-            <p className="text-xs text-gray-500">{roleName}</p>
-          </div>
-          <button onClick={handleLogout} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+
+        {/* Złota linia + user */}
+        <div style={sidebarStyles.goldLine} />
+        <div style={sidebarStyles.footer}>
+          <div style={sidebarStyles.userName}>{user?.name}</div>
+          <div style={sidebarStyles.userRole}>{roleName}</div>
+          <button onClick={handleLogout} style={sidebarStyles.logout}
+            onMouseEnter={e => { e.currentTarget.style.color = '#b08a50'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = 'rgba(240,235,224,.45)'; }}>
             <span>🚪</span> Wyloguj się
           </button>
         </div>
       </aside>
 
-      {/* ── MOBILE SIDEBAR (ikony) ── */}
-      <aside className="md:hidden flex flex-col bg-white border-r border-gray-100 shadow-sm shrink-0 z-30"
-        style={{ width: mobileOpen ? '200px' : '60px', transition: 'width 0.2s ease' }}>
-        
-        {/* Toggle button */}
-        <button
-          onClick={() => setMobileOpen(o => !o)}
-          className="flex items-center justify-center h-14 border-b border-gray-100 text-rose-600 hover:bg-rose-50 transition-colors"
-        >
+      {/* ── MOBILE SIDEBAR ── */}
+      <aside className="md:hidden flex flex-col shrink-0 z-30"
+        style={{ ...sidebarStyles.sidebar, width: mobileOpen ? '200px' : '56px', transition: 'width .2s ease' }}>
+
+        <button onClick={() => setMobileOpen(o => !o)}
+          style={{ height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid rgba(176,138,80,.15)', color: '#b08a50', fontSize: '18px', background: 'none', border: 'none', borderBottom: '1px solid rgba(176,138,80,.15)', cursor: 'pointer', width: '100%' }}>
           {mobileOpen ? '✕' : '☰'}
         </button>
 
-        {/* Nav icons */}
-        <nav className="flex-1 py-2 overflow-y-auto overflow-x-hidden">
-          {visibleNav.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/'}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) =>
-                `flex items-center gap-3 px-3 py-3 text-sm font-medium transition-colors ${isActive ? 'bg-rose-50 text-rose-700' : 'text-gray-600 hover:bg-gray-50'}`
-              }
-            >
-              <span className="text-xl shrink-0">{item.icon}</span>
-              {mobileOpen && <span className="whitespace-nowrap text-sm">{item.label}</span>}
-            </NavLink>
-          ))}
+        <nav style={{ flex: 1, padding: '8px 0', overflowY: 'auto' }}>
+          {visibleNav.map(item => <NavItem key={item.to} item={item} showLabel={mobileOpen} />)}
         </nav>
 
-        {/* Logout */}
-        <div className="border-t border-gray-100 py-2">
+        <div style={{ borderTop: '1px solid rgba(176,138,80,.15)', padding: '8px 0' }}>
           {mobileOpen && (
-            <div className="px-3 py-1 mb-1">
-              <p className="text-xs font-medium text-gray-700 truncate">{user?.name}</p>
-              <p className="text-xs text-gray-400">{roleName}</p>
-            </div>
+            <>
+              <div style={{ ...sidebarStyles.userName, fontSize: '12px' }}>{user?.name}</div>
+              <div style={{ ...sidebarStyles.userRole, fontSize: '9px' }}>{roleName}</div>
+            </>
           )}
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-3 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-          >
-            <span className="text-xl shrink-0">🚪</span>
-            {mobileOpen && <span className="whitespace-nowrap">Wyloguj</span>}
+          <button onClick={handleLogout}
+            style={{ ...sidebarStyles.logout, justifyContent: mobileOpen ? 'flex-start' : 'center' }}>
+            <span style={{ fontSize: '15px' }}>🚪</span>
+            {mobileOpen && <span>Wyloguj</span>}
           </button>
         </div>
       </aside>
 
       {/* ── MAIN CONTENT ── */}
-      <main className="flex-1 overflow-y-auto min-w-0">
-        <div className="max-w-6xl mx-auto px-3 py-4 md:px-6 md:py-8">
+      <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
+        {/* Górny pasek */}
+        <div style={{ background: '#fff', borderBottom: '1px solid #e4e0da', padding: '14px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ width: '120px', height: '1px', background: 'linear-gradient(90deg, #b08a50, transparent)', opacity: .4 }} />
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '13px', fontStyle: 'italic', color: '#9a9590', letterSpacing: '1px' }}>
+            {user?.name}
+          </div>
+          <div style={{ width: '120px', height: '1px', background: 'linear-gradient(270deg, #b08a50, transparent)', opacity: .4 }} />
+        </div>
+
+        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '28px 32px' }}>
           <Outlet />
         </div>
       </main>
