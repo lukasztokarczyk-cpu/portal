@@ -12,6 +12,7 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
     diet: guest?.diet || 'standard',
     dietNotes: guest?.dietNotes || '',
     rsvp: guest?.rsvp || 'pending',
+    guestGroup: guest?.guestGroup || 'bride',
   });
 
   const handleSubmit = async (e) => {
@@ -24,6 +25,7 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
       diet: form.diet,
       dietNotes: form.dietNotes,
       rsvp: form.rsvp,
+      guestGroup: form.guestGroup,
     };
     try {
       if (isEdit) {
@@ -107,6 +109,34 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
               ))}
             </div>
           </div>
+          <div>
+            <label className="label">Podział / rola gościa</label>
+            <div className="flex gap-2 flex-wrap mt-1">
+              {[
+                { value: 'bride',       label: '👰 Strona Panny Młodej' },
+                { value: 'groom',       label: '🤵 Strona Pana Młodego' },
+                { value: 'both',        label: '💍 Wspólni' },
+                { value: 'dj',          label: '🎧 DJ' },
+                { value: 'photo',       label: '📸 Fotograf/Kamerzysta' },
+                { value: 'band',        label: '🎵 Zespół muzyczny' },
+                { value: 'service',     label: '🧑‍🍳 Obsługa' },
+                { value: 'other',       label: '👥 Inni' },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setForm({ ...form, guestGroup: value })}
+                  className={`px-3 py-1.5 rounded-xl border-2 text-xs font-medium transition-all ${
+                    form.guestGroup === value
+                      ? 'border-rose-400 bg-rose-50 text-rose-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="flex gap-2 pt-2">
             <button type="submit" className="btn-primary flex-1 justify-center">Zapisz</button>
             <button type="button" onClick={onClose} className="btn-secondary flex-1 justify-center">Anuluj</button>
@@ -124,6 +154,7 @@ export default function GuestsPage() {
   const [stats, setStats] = useState({});
   const [modal, setModal] = useState(null);
   const [search, setSearch] = useState('');
+  const [groupFilter, setGroupFilter] = useState('all');
   const fileRef = useRef();
 
   useEffect(() => {
@@ -161,7 +192,18 @@ export default function GuestsPage() {
     window.open(`/api/guests/wedding/${wedding.id}/export-pdf?token=${localStorage.getItem('token')}`, '_blank');
   };
 
-  const filtered = guests.filter((g) => `${g.firstName} ${g.lastName}`.toLowerCase().includes(search.toLowerCase()));
+  const GROUP_LABELS = {
+    bride: '👰 Panna Młoda', groom: '🤵 Pan Młody', both: '💍 Wspólni',
+    dj: '🎧 DJ', photo: '📸 Foto/Film', band: '🎵 Zespół',
+    service: '🧑‍🍳 Obsługa', other: '👥 Inni',
+  };
+  const filtered = guests.filter((g) => {
+    const nameMatch = `${g.firstName} ${g.lastName}`.toLowerCase().includes(search.toLowerCase());
+    const groupMatch = groupFilter === 'all' || g.guestGroup === groupFilter;
+    return nameMatch && groupMatch;
+  });
+  // Zlicz grupy
+  const groupCounts = guests.reduce((acc, g) => { const grp = g.guestGroup || 'bride'; acc[grp] = (acc[grp] || 0) + 1; return acc; }, {});
   const rsvpColor = { yes: 'text-green-600', no: 'text-red-600', pending: 'text-yellow-600' };
 
   return (
@@ -183,6 +225,19 @@ export default function GuestsPage() {
         <div className="card flex-1 text-center"><div className="text-2xl font-bold text-rose-600">{stats.children || 0}</div><div className="text-sm text-gray-500">Dzieci</div></div>
       </div>
 
+      {/* Filtry grup */}
+      <div className="flex gap-2 flex-wrap">
+        <button onClick={() => setGroupFilter('all')}
+          className={`px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${groupFilter === 'all' ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+          👥 Wszyscy ({guests.length})
+        </button>
+        {Object.entries(GROUP_LABELS).filter(([k]) => groupCounts[k] > 0).map(([k, l]) => (
+          <button key={k} onClick={() => setGroupFilter(k)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-all ${groupFilter === k ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+            {l} ({groupCounts[k]})
+          </button>
+        ))}
+      </div>
       <input className="input max-w-xs" placeholder="🔍 Szukaj..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
       <div className="overflow-x-auto">
@@ -200,9 +255,12 @@ export default function GuestsPage() {
               <tr key={g.id} className="hover:bg-gray-50 transition-colors">
                 <td className="py-3 pr-4 font-medium text-gray-800">{g.lastName} {g.firstName}</td>
                 <td className="py-3 pr-4 text-gray-500">
-                  {g.ageCategory === 'childUnder3' ? '👶 0–3 lat' :
+                  <div>{g.ageCategory === 'childUnder3' ? '👶 0–3 lat' :
                    g.ageCategory === 'child3to10' ? '👦 3–10 lat' :
-                   g.isChild ? '👦 Dziecko' : '👤 Dorosły'}
+                   g.isChild ? '👦 Dziecko' : '👤 Dorosły'}</div>
+                  {g.guestGroup && g.guestGroup !== 'bride' && (
+                    <div className="text-xs text-rose-500 mt-0.5">{GROUP_LABELS[g.guestGroup] || g.guestGroup}</div>
+                  )}
                 </td>
                 <td className="py-3 pr-4 text-gray-500">
                   {g.diet === 'standard' || !g.diet ? '🍽️ Std' :

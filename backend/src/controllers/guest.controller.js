@@ -17,9 +17,9 @@ exports.getByWedding = async (req, res, next) => {
 
 exports.create = async (req, res, next) => {
   try {
-    const { firstName, lastName, isChild, diet, tableId, email, phone, rsvp } = req.body;
+    const { firstName, lastName, isChild, ageCategory, diet, dietNotes, tableId, email, phone, rsvp, guestGroup } = req.body;
     const guest = await prisma.guest.create({
-      data: { weddingId: req.params.weddingId, firstName, lastName, isChild: isChild || false, diet, tableId, email, phone, rsvp },
+      data: { weddingId: req.params.weddingId, firstName, lastName, isChild: isChild || false, ageCategory, diet, dietNotes, tableId, email, phone, rsvp, guestGroup },
     });
     res.status(201).json(guest);
   } catch (err) {
@@ -29,10 +29,10 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
-    const { firstName, lastName, isChild, diet, tableId, email, phone, rsvp } = req.body;
+    const { firstName, lastName, isChild, ageCategory, diet, dietNotes, tableId, email, phone, rsvp, guestGroup } = req.body;
     const guest = await prisma.guest.update({
       where: { id: req.params.id },
-      data: { firstName, lastName, isChild, diet, tableId, email, phone, rsvp },
+      data: { firstName, lastName, isChild, ageCategory, diet, dietNotes, tableId, email, phone, rsvp, guestGroup },
     });
     res.json(guest);
   } catch (err) {
