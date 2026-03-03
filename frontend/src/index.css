@@ -24,6 +24,29 @@
     font-weight: 300;
     antialiased: true;
   }
+
+  h1 {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-weight: 400 !important;
+    font-size: 2rem !important;
+    letter-spacing: 0.5px;
+    color: #1c1a17;
+  }
+
+  h2 {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-weight: 400 !important;
+    font-size: 1.4rem !important;
+    letter-spacing: 0.3px;
+    color: #1c1a17;
+  }
+
+  h3 {
+    font-family: 'Cormorant Garamond', serif !important;
+    font-weight: 400 !important;
+    font-size: 1.15rem !important;
+    color: #1c1a17;
+  }
 }
 
 @layer components {
