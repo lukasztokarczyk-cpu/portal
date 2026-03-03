@@ -13,7 +13,15 @@ export function AuthProvider({ children }) {
       api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       api.get('/auth/me')
         .then((res) => setUser(res.data))
-        .catch(() => { localStorage.removeItem('token'); delete api.defaults.headers.common['Authorization']; })
+        .catch((err) => {
+          // Wyloguj tylko przy nieważnym tokenie (401/403)
+          // Przy błędach sieciowych (serwer się budzi, timeout) zostaw sesję
+          const status = err?.response?.status;
+          if (status === 401 || status === 403) {
+            localStorage.removeItem('token');
+            delete api.defaults.headers.common['Authorization'];
+          }
+        })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
