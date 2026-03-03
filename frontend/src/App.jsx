@@ -45,7 +45,7 @@ function AppRoutes() {
         <Route path="accommodation" element={<AccommodationPage />} />
         <Route path="summary" element={<SummaryPage />} />
         <Route path="wedding-plan" element={<WeddingPlanPage />} />
-        <Route path="venue" element={<RequireAuth roles={['admin']} logins={['test']}><VenueVisualizationPage /></RequireAuth>} />
+        {/* <Route path="venue" element={<RequireAuth roles={['admin']} logins={['test']}><VenueVisualizationPage /></RequireAuth>} /> */}
         <Route path="admin" element={<RequireAuth roles={['admin']}><AdminPage /></RequireAuth>} />
       </Route>
     </Routes>

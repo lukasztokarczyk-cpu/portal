@@ -11,7 +11,7 @@ const navItems = [
   { to: '/accommodation', label: 'Noclegi', icon: '🛏️', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/summary', label: 'Podsumowanie', icon: '📊', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/wedding-plan', label: 'Plan wesela', icon: '📅', roles: ['admin', 'coordinator', 'couple'] },
-  { to: '/venue', label: 'Wizualizacja sali', icon: '🌹', roles: ['admin'], logins: ['test'] },
+  // { to: '/venue', label: 'Wizualizacja sali', icon: '🌹', roles: ['admin'], logins: ['test'] }, // UKRYTE TYMCZASOWO
   { to: '/chat', label: 'Wiadomości', icon: '💬', roles: ['admin', 'coordinator', 'couple'] },
   { to: '/admin', label: 'Zarządzanie', icon: '⚙️', roles: ['admin'] },
 ];
