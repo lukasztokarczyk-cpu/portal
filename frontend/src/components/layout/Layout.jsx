@@ -65,11 +65,21 @@ export default function Layout() {
       {/* ── DESKTOP SIDEBAR ── */}
       <aside className="hidden md:flex flex-col shrink-0" style={{ ...sidebarStyles.sidebar, width: '220px' }}>
         {/* Logo / Tytuł */}
-        <div style={sidebarStyles.header}>
-          <div style={sidebarStyles.title}>Perła Pienin</div>
-          <div style={sidebarStyles.sub}>Strefa Pary Młodej</div>
+        <div style={{ padding: '28px 20px 22px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', borderBottom: '1px solid rgba(176,138,80,.15)' }}>
+          <div style={{ width: '80%', height: '1px', background: 'linear-gradient(90deg,transparent,#b08a50 30%,#b08a50 70%,transparent)', opacity: .85 }} />
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '22px', fontWeight: 300, color: '#f0ebe0', letterSpacing: '3px', textAlign: 'center', textTransform: 'uppercase' }}>
+            Perła <span style={{ fontStyle: 'italic', color: '#b08a50' }}>Pienin</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '65%' }}>
+            <div style={{ flex: 1, height: '1px', background: '#b08a50', opacity: .5 }} />
+            <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#b08a50', flexShrink: 0 }} />
+            <div style={{ flex: 1, height: '1px', background: '#b08a50', opacity: .5 }} />
+          </div>
+          <div style={{ fontFamily: "'Cormorant Garamond', serif", fontStyle: 'italic', fontSize: '13px', color: 'rgba(240,235,224,.78)', letterSpacing: '1px', textAlign: 'center' }}>
+            Strefa Pary Młodej
+          </div>
+          <div style={{ width: '80%', height: '1px', background: 'linear-gradient(90deg,transparent,#b08a50 30%,#b08a50 70%,transparent)', opacity: .85 }} />
         </div>
-        <div style={sidebarStyles.goldLine} />
 
         {/* Nav */}
         <nav style={{ flex: 1, padding: '12px 0', overflowY: 'auto' }}>
