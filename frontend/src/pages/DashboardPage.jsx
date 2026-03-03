@@ -354,11 +354,40 @@ export default function DashboardPage() {
 
   /* ── PARA MŁODA ── */
   if (!data) return <div style={{ textAlign: 'center', padding: 48, color: '#9a9590' }}>Nie znaleziono danych wesela.</div>;
-  const { dashboard, weddingDate } = data;
+  return <CoupleView data={data} />;
+}
+
+function CoupleView({ data }) {
+  const { dashboard, weddingDate, id: weddingId } = data;
+  const [stages, setStages] = useState([]);
+  const [loadingStages, setLoadingStages] = useState(true);
+
+  const fetchStages = () => {
+    if (!weddingId) return;
+    api.get(`/stages/wedding/${weddingId}`)
+      .then(r => setStages(r.data))
+      .catch(console.error)
+      .finally(() => setLoadingStages(false));
+  };
+
+  useEffect(() => { fetchStages(); }, [weddingId]);
+
+  const toggleDone = async (stage) => {
+    const newStatus = stage.status === 'completed' ? 'open' : 'completed';
+    try {
+      await api.patch(`/stages/${stage.id}/status`, { status: newStatus });
+      fetchStages();
+      toast.success(newStatus === 'completed' ? '✓ Oznaczono jako ukończone!' : 'Cofnięto ukończenie');
+    } catch { toast.error('Błąd'); }
+  };
+
+  const done = stages.filter(s => s.status === 'completed').length;
+  const pct = stages.length > 0 ? Math.round((done / stages.length) * 100) : (dashboard.progressPercent || 0);
   const formattedDate = format(new Date(weddingDate), 'dd MMMM yyyy', { locale: pl });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <h1>Witajcie! 💐</h1>
@@ -370,44 +399,74 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Pasek postępu - live z stages */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
           <span style={{ fontSize: 12, letterSpacing: '1px', textTransform: 'uppercase', color: '#9a9590' }}>Postęp przygotowań</span>
-          <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, color: '#b08a50' }}>{dashboard.progressPercent}%</span>
+          <span style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, color: '#b08a50' }}>
+            {stages.length > 0 ? `${done} / ${stages.length}` : `${pct}%`}
+          </span>
         </div>
         <div style={{ height: 4, background: '#f3f0eb', borderRadius: 2 }}>
-          <div style={{ height: 4, width: `${dashboard.progressPercent}%`, background: 'linear-gradient(90deg,#b08a50,#d4af70)', borderRadius: 2, transition: 'width .5s' }} />
+          <div style={{ height: 4, width: `${pct}%`, background: 'linear-gradient(90deg,#b08a50,#d4af70)', borderRadius: 2, transition: 'width .5s' }} />
         </div>
+        {stages.length > 0 && <p style={{ fontSize: 11, color: '#9a9590', marginTop: 8 }}>{done} ukończonych z {stages.length} zadań</p>}
       </div>
 
+      {/* Statsy */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12 }}>
         <StatCard icon="👥" label="Zaproszeni goście" value={dashboard.guestCount} />
         <StatCard icon="💰" label="Saldo do zapłaty" value={`${Number(dashboard.balance).toLocaleString('pl')} zł`} />
-        <StatCard icon="✅" label="Postęp" value={`${dashboard.progressPercent}%`} />
+        <StatCard icon="✅" label="Postęp" value={`${pct}%`} />
         <StatCard icon="💌" label="Wiadomości" value={dashboard.lastMessage ? '1 nowa' : 'Brak'} />
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div className="card">
-          <h3 style={{ margin: '0 0 12px' }}>📌 Najbliższe zadanie</h3>
-          {dashboard.nextTask ? (
-            <div>
-              <p style={{ fontWeight: 500, color: '#1c1a17' }}>{dashboard.nextTask.title}</p>
-              {dashboard.nextTask.dueDate && <p style={{ fontSize: 12, color: '#9a9590', marginTop: 4 }}>Termin: {format(new Date(dashboard.nextTask.dueDate), 'dd MMM yyyy', { locale: pl })}</p>}
-              {dashboard.nextTask.notes && <p style={{ fontSize: 12, color: '#b08a50', marginTop: 4, fontStyle: 'italic' }}>{dashboard.nextTask.notes}</p>}
+      {/* Zadania od administratora */}
+      {stages.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <h2 style={{ margin: 0 }}>Wasze przygotowania</h2>
+          {loadingStages ? (
+            <p style={{ color: '#9a9590', textAlign: 'center', padding: 20 }}>Ładowanie...</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {stages.map(s => {
+                const isDone = s.status === 'completed';
+                const overdue = s.dueDate && new Date(s.dueDate) < new Date() && !isDone;
+                return (
+                  <div key={s.id} className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 14, opacity: isDone ? .7 : 1, transition: 'all .2s' }}>
+                    {/* Checkbox */}
+                    <button onClick={() => toggleDone(s)}
+                      style={{ width: 24, height: 24, borderRadius: 4, border: `2px solid ${isDone ? '#b08a50' : '#d0c8bc'}`, background: isDone ? '#b08a50' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all .2s' }}>
+                      {isDone && <span style={{ color: '#fff', fontSize: 13, lineHeight: 1 }}>✓</span>}
+                    </button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: isDone ? '#9a9590' : '#1c1a17', textDecoration: isDone ? 'line-through' : 'none', margin: 0 }}>{s.title}</p>
+                      {s.description && <p style={{ fontSize: 11, color: '#9a9590', margin: '3px 0 0' }}>{s.description}</p>}
+                      <div style={{ display: 'flex', gap: 12, marginTop: 4, flexWrap: 'wrap' }}>
+                        {s.dueDate && <span style={{ fontSize: 11, color: overdue ? '#c0392b' : '#b08a50' }}>📅 {format(new Date(s.dueDate), 'dd MMM yyyy', { locale: pl })}{overdue ? ' — przekroczony!' : ''}</span>}
+                        {s.notes && <span style={{ fontSize: 11, color: '#9a9590', fontStyle: 'italic' }}>💬 {s.notes}</span>}
+                      </div>
+                    </div>
+                    {isDone && <span style={{ fontSize: 18, flexShrink: 0 }}>🎉</span>}
+                    {overdue && <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>}
+                  </div>
+                );
+              })}
             </div>
-          ) : <p style={{ color: '#9a9590' }}>Wszystkie zadania ukończone! 🎉</p>}
+          )}
         </div>
-        <div className="card">
-          <h3 style={{ margin: '0 0 12px' }}>💬 Ostatnia wiadomość</h3>
-          {dashboard.lastMessage ? (
-            <div>
-              <p style={{ fontSize: 12, color: '#9a9590' }}>{dashboard.lastMessage.sender?.name}</p>
-              <p style={{ color: '#1c1a17', marginTop: 4 }}>{dashboard.lastMessage.content}</p>
-              <p style={{ fontSize: 11, color: '#b0aba4', marginTop: 8 }}>{format(new Date(dashboard.lastMessage.createdAt), 'dd.MM.yyyy HH:mm')}</p>
-            </div>
-          ) : <p style={{ color: '#9a9590' }}>Brak wiadomości.</p>}
-        </div>
+      )}
+
+      {/* Ostatnia wiadomość */}
+      <div className="card">
+        <h3 style={{ margin: '0 0 12px' }}>💬 Ostatnia wiadomość</h3>
+        {dashboard.lastMessage ? (
+          <div>
+            <p style={{ fontSize: 12, color: '#9a9590' }}>{dashboard.lastMessage.sender?.name}</p>
+            <p style={{ color: '#1c1a17', marginTop: 4 }}>{dashboard.lastMessage.content}</p>
+            <p style={{ fontSize: 11, color: '#b0aba4', marginTop: 8 }}>{format(new Date(dashboard.lastMessage.createdAt), 'dd.MM.yyyy HH:mm')}</p>
+          </div>
+        ) : <p style={{ color: '#9a9590' }}>Brak wiadomości.</p>}
       </div>
     </div>
   );

@@ -70,3 +70,27 @@ exports.reorder = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.updateStatus = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    if (!['open', 'in_progress', 'completed'].includes(status)) {
+      return res.status(400).json({ error: 'Nieprawidłowy status' });
+    }
+    // Sprawdź czy stage należy do wesela tej pary lub user jest adminem
+    const stage = await prisma.stage.findUnique({
+      where: { id: req.params.id },
+      include: { wedding: { include: { couple: true } } }
+    });
+    if (!stage) return res.status(404).json({ error: 'Nie znaleziono' });
+    const isOwner = stage.wedding.couple?.id === req.user.id;
+    const isAdmin = ['admin', 'coordinator'].includes(req.user.role);
+    if (!isOwner && !isAdmin) return res.status(403).json({ error: 'Brak dostępu' });
+
+    const updated = await prisma.stage.update({
+      where: { id: req.params.id },
+      data: { status }
+    });
+    res.json(updated);
+  } catch (err) { next(err); }
+};

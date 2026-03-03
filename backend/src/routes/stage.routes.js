@@ -16,5 +16,6 @@ router.post('/wedding/:weddingId', authenticate, authorize('admin', 'coordinator
 router.patch('/:id', authenticate, authorize('admin', 'coordinator'), stageValidation, validate, ctrl.update);
 router.delete('/:id', authenticate, authorize('admin'), ctrl.remove);
 router.patch('/:id/reorder', authenticate, authorize('admin', 'coordinator'), ctrl.reorder);
+router.patch('/:id/status', authenticate, ctrl.updateStatus); // para może zmieniać status
 
 module.exports = router;
