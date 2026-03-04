@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 
 const VENUE_LABEL = 'Perła Pienin, Podzagonie 12, 34-450 Grywałd';
