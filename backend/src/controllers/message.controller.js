@@ -1,5 +1,7 @@
 const prisma = require('../prisma/client');
 const { uploadFile, getSignedUrl } = require('../utils/supabaseStorage');
+const { sendMessageNotification } = require('../utils/email');
+const { uploadFile, getSignedUrl } = require('../utils/supabaseStorage');
 
 exports.getByWedding = async (req, res, next) => {
   try {
@@ -36,6 +38,19 @@ exports.send = async (req, res, next) => {
       },
       include: { sender: { select: { id: true, name: true, role: true } } },
     });
+    // Wyślij email z powiadomieniem (nie czekaj — async w tle)
+    const wedding = await prisma.wedding.findUnique({
+      where: { id: req.params.weddingId },
+      include: { couple: { select: { name: true, email: true } } }
+    });
+    sendMessageNotification({
+      senderName: req.user.name || req.user.login,
+      senderRole: req.user.role,
+      coupleName: wedding?.couple?.name || wedding?.couple?.email || '',
+      content: content.length > 200 ? content.substring(0, 200) + '...' : content,
+      weddingId: req.params.weddingId,
+    }).catch(err => console.error('[EMAIL] Błąd:', err.message));
+
     res.status(201).json(message);
   } catch (err) {
     next(err);

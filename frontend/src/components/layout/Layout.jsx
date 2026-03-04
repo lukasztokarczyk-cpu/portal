@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../../services/api';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 
@@ -20,8 +21,32 @@ export default function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const handleLogout = () => { logout(); navigate('/login'); };
+
+  // Polling nieprzeczytanych wiadomości
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = async () => {
+      try {
+        let weddingId = null;
+        if (user.role === 'couple') {
+          const res = await api.get('/weddings/my');
+          weddingId = res.data?.id;
+        } else {
+          const res = await api.get('/weddings');
+          if (res.data?.length > 0) weddingId = res.data[0].id;
+        }
+        if (!weddingId) return;
+        const res = await api.get(`/messages/wedding/${weddingId}`);
+        setUnreadCount(res.data?.unreadCount || 0);
+      } catch {}
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const visibleNav = navItems.filter(item =>
     item.roles.includes(user?.role) ||
@@ -54,8 +79,24 @@ export default function Layout() {
       onMouseEnter={e => { if (!e.currentTarget.style.borderLeft) { e.currentTarget.style.background = 'rgba(255,255,255,.04)'; e.currentTarget.style.color = 'rgba(240,235,224,.9)'; }}}
       onMouseLeave={e => { if (!e.currentTarget.style.borderLeft) { e.currentTarget.style.background = ''; e.currentTarget.style.color = 'rgba(240,235,224,.65)'; }}}
     >
-      <span style={{ fontSize: '15px', flexShrink: 0 }}>{item.icon}</span>
-      {showLabel && <span>{item.label}</span>}
+      <span style={{ fontSize: '15px', flexShrink: 0, position: 'relative' }}>
+        {item.icon}
+        {item.to === '/chat' && unreadCount > 0 && (
+          <span style={{ position: 'absolute', top: -6, right: -6, background: '#b08a50', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 20, minWidth: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', lineHeight: 1 }}>
+            {unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        )}
+      </span>
+      {showLabel && (
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {item.label}
+          {item.to === '/chat' && unreadCount > 0 && (
+            <span style={{ background: '#b08a50', color: '#fff', fontSize: 9, fontWeight: 700, borderRadius: 20, minWidth: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 5px' }}>
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </span>
+      )}
     </NavLink>
   );
 

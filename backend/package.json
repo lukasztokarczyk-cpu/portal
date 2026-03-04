@@ -1,7 +1,7 @@
 {
   "name": "strefa-pary-mlodej-backend",
   "version": "1.0.0",
-  "description": "Backend for Strefa Pary Młodej - Perła Pienin",
+  "description": "Backend for Strefa Pary M\u0142odej - Per\u0142a Pienin",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -23,7 +23,8 @@
     "express-validator": "^7.0.1",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "nodemailer": "^6.9.8"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",
