@@ -44,14 +44,22 @@ export default function WeddingPlanPage() {
     vodkaService: 'obsługa', vodkaTiming: 'przed',
     wishTiming: 'po',
     oczepiny: 'tak',
+    napkinColor: '',
+    napkinLink: '',
+    napkinNotes: '',
   });
   const [travelTimes, setTravelTimes] = useState({
     groomToChurch: 30, brideToChurch: 20, churchToVenue: 45,
   });
   const [loadingTravel, setLoadingTravel] = useState(false);
   const [schedule, setSchedule] = useState(null);
+  const [weddingId, setWeddingId] = useState(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  useEffect(() => {
+    api.get('/weddings/my').then(r => setWeddingId(r.data?.id)).catch(() => {});
+  }, []);
 
   // Krok 1a — czy podawać miejscowości Państwa Młodych?
   const handleSkipChoice = (skip) => {
@@ -207,6 +215,22 @@ Trasy:
     });
 
     setSchedule(events);
+
+    // Zapisz kolor serwetek jako stage jeśli podano
+    if (form.napkinColor && weddingId) {
+      const title = `🎀 Kolor serwetek: ${form.napkinColor}`;
+      const notes = [
+        form.napkinLink ? `Link: ${form.napkinLink}` : '',
+        form.napkinNotes || '',
+      ].filter(Boolean).join(' | ');
+      api.post(`/stages/wedding/${weddingId}`, {
+        title,
+        description: 'Wybór koloru serwetek przez Parę Młodą',
+        notes: notes || undefined,
+        status: 'completed',
+      }).catch(() => {});
+    }
+
     setStep(4);
   };
 
@@ -486,6 +510,127 @@ Trasy:
 
           <div className="flex gap-2">
             <button className="btn-secondary flex-1 justify-center" onClick={() => setStep(3)}>← Wróć</button>
+            <button className="btn-primary flex-1 justify-center" onClick={() => setStep('3c')}>
+              Dalej →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* KROK 3c — Kolor serwetek */}
+      {step === '3c' && (
+        <div className="card space-y-6">
+          <div>
+            <h2 className="font-bold text-gray-800 text-lg">🎀 Kolor serwetek</h2>
+            <p style={{ fontSize: 12, color: '#9a9590', marginTop: 4 }}>Pomóż nam dobrać idealny kolor serwetek do Waszego wesela</p>
+          </div>
+
+          {/* Popularne kolory */}
+          <div>
+            <p className="label mb-3">Wybierz kolor lub wpisz własny</p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBottom: 16 }}>
+              {[
+                { color: '#FFFFFF', name: 'Biały', text: '#1c1a17' },
+                { color: '#F5F0E8', name: 'Kremowy', text: '#1c1a17' },
+                { color: '#F9C8D0', name: 'Różowy', text: '#1c1a17' },
+                { color: '#E8A0B0', name: 'Dusty Rose', text: '#fff' },
+                { color: '#C8A0C0', name: 'Lawendowy', text: '#fff' },
+                { color: '#B08040', name: 'Złoty', text: '#fff' },
+                { color: '#C8B090', name: 'Szampański', text: '#1c1a17' },
+                { color: '#90B890', name: 'Miętowy', text: '#1c1a17' },
+                { color: '#6090A8', name: 'Błękitny', text: '#fff' },
+                { color: '#808080', name: 'Szary', text: '#fff' },
+                { color: '#2C2C2C', name: 'Czarny', text: '#fff' },
+                { color: 'custom', name: '✏️ Inny', text: '#1c1a17' },
+              ].map(({ color, name, text }) => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => set('napkinColor', color === 'custom' ? '' : name)}
+                  style={{
+                    width: color === 'custom' ? 'auto' : 64,
+                    height: color === 'custom' ? 40 : 64,
+                    padding: color === 'custom' ? '8px 16px' : 0,
+                    borderRadius: 8,
+                    border: `3px solid ${form.napkinColor === name || (color === 'custom' && !['Biały','Kremowy','Różowy','Dusty Rose','Lawendowy','Złoty','Szampański','Miętowy','Błękitny','Szary','Czarny'].includes(form.napkinColor)) ? '#b08a50' : '#e4e0da'}`,
+                    background: color === 'custom' ? '#f8f6f3' : color,
+                    color: color === 'custom' ? '#1c1a17' : text,
+                    fontSize: 10,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'column',
+                    gap: 3,
+                    boxShadow: form.napkinColor === name ? '0 0 0 2px rgba(176,138,80,.3)' : 'none',
+                    transition: 'all .15s',
+                  }}>
+                  {color !== 'custom' && <span style={{ fontSize: 9, marginTop: 2 }}>{name}</span>}
+                  {color === 'custom' && '✏️ Inny kolor'}
+                </button>
+              ))}
+            </div>
+
+            {/* Własny kolor tekstowo */}
+            <div>
+              <label className="label">Nazwa koloru (wpisz swój)</label>
+              <input
+                className="input"
+                placeholder="np. burgund, nude, sage green, dusty blue..."
+                value={form.napkinColor}
+                onChange={e => set('napkinColor', e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Link do inspiracji */}
+          <div>
+            <label className="label">🔗 Link do inspiracji (opcjonalnie)</label>
+            <p style={{ fontSize: 11, color: '#9a9590', marginBottom: 6 }}>
+              Wklej link ze strony, Pinteresta, sklepu lub galerii — zobaczymy dokładnie o jaki kolor chodzi
+            </p>
+            <input
+              className="input"
+              type="url"
+              placeholder="https://www.pinterest.com/... lub inne"
+              value={form.napkinLink}
+              onChange={e => set('napkinLink', e.target.value)}
+            />
+            {form.napkinLink && (
+              <a href={form.napkinLink} target="_blank" rel="noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 12, color: '#b08a50', textDecoration: 'none' }}>
+                🔗 Otwórz link aby sprawdzić →
+              </a>
+            )}
+          </div>
+
+          {/* Dodatkowe uwagi */}
+          <div>
+            <label className="label">💬 Dodatkowe uwagi (opcjonalnie)</label>
+            <textarea
+              className="input"
+              rows={3}
+              placeholder="np. chcemy żeby pasowały do kwiatów, mamy zdjęcie z innego wesela..."
+              value={form.napkinNotes}
+              onChange={e => set('napkinNotes', e.target.value)}
+              style={{ resize: 'none' }}
+            />
+          </div>
+
+          {/* Podgląd wyboru */}
+          {form.napkinColor && (
+            <div style={{ background: 'rgba(176,138,80,.06)', border: '1px solid rgba(176,138,80,.2)', borderRadius: 8, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ fontSize: 20 }}>🎀</span>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 500, color: '#1c1a17', margin: 0 }}>Wybrany kolor: <strong style={{ color: '#b08a50' }}>{form.napkinColor}</strong></p>
+                {form.napkinLink && <p style={{ fontSize: 11, color: '#9a9590', margin: '2px 0 0' }}>Link: {form.napkinLink}</p>}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button className="btn-secondary flex-1 justify-center" onClick={() => setStep('3b')}>← Wróć</button>
             <button className="btn-primary flex-1 justify-center" onClick={buildSchedule}>
               📋 Generuj harmonogram →
             </button>
@@ -496,6 +641,23 @@ Trasy:
       {/* KROK 4 — Harmonogram */}
       {step === 4 && schedule && (
         <div className="space-y-4">
+          {/* Kolor serwetek - podsumowanie */}
+          {form.napkinColor && (
+            <div style={{ background: '#fff', border: '1px solid #e4e0da', borderRadius: 8, padding: '16px 20px', display: 'flex', alignItems: 'center', gap: 14 }}>
+              <span style={{ fontSize: 24 }}>🎀</span>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 11, letterSpacing: '1.5px', textTransform: 'uppercase', color: '#9a9590', margin: '0 0 3px' }}>Kolor serwetek</p>
+                <p style={{ fontSize: 15, fontFamily: "'Cormorant Garamond',serif", color: '#1c1a17', margin: 0 }}>{form.napkinColor}</p>
+                {form.napkinLink && (
+                  <a href={form.napkinLink} target="_blank" rel="noreferrer"
+                    style={{ fontSize: 11, color: '#b08a50', textDecoration: 'none', marginTop: 3, display: 'inline-block' }}>
+                    🔗 Zobacz inspirację →
+                  </a>
+                )}
+                {form.napkinNotes && <p style={{ fontSize: 11, color: '#9a9590', margin: '3px 0 0', fontStyle: 'italic' }}>{form.napkinNotes}</p>}
+              </div>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-gray-800 text-lg">📋 Harmonogram dnia weselnego</h2>
             <button className="btn-secondary text-sm" onClick={() => setStep(1)}>✏️ Edytuj</button>

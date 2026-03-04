@@ -1,4 +1,5 @@
 const prisma = require('../prisma/client');
+const { sendNapkinNotification } = require('../utils/email');
 
 exports.getByWedding = async (req, res, next) => {
   try {
@@ -26,6 +27,21 @@ exports.create = async (req, res, next) => {
         order: order || 0,
       },
     });
+    // Email jeśli to wybór serwetek
+    if (title && title.includes('serwetek')) {
+      const wedding = await prisma.wedding.findUnique({
+        where: { id: req.params.weddingId },
+        include: { couple: { select: { name: true } } }
+      });
+      const colorMatch = title.match(/serwetek: (.+)/);
+      sendNapkinNotification({
+        coupleName: wedding?.couple?.name || '',
+        napkinColor: colorMatch ? colorMatch[1] : title,
+        napkinLink: notes?.includes('Link:') ? notes.split('Link:')[1].split('|')[0].trim() : '',
+        napkinNotes: notes?.includes('|') ? notes.split('|').slice(1).join('|').trim() : (notes || ''),
+      }).catch(err => console.error('[EMAIL]', err.message));
+    }
+
     res.status(201).json(stage);
   } catch (err) {
     next(err);
