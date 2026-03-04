@@ -136,6 +136,9 @@ function AddTaskModal({ wedding, onClose, onSaved }) {
 function WeddingDetail({ wedding, onBack }) {
   const [stages, setStages] = useState([]);
   const [loadingStages, setLoadingStages] = useState(true);
+  const [napkin, setNapkin] = useState({ color: '', link: '', notes: '' });
+  const [napkinSaved, setNapkinSaved] = useState(false);
+  const [napkinSaving, setNapkinSaving] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
 
   const fetchStages = () => {
@@ -361,6 +364,9 @@ function CoupleView({ data }) {
   const { dashboard, weddingDate, id: weddingId } = data;
   const [stages, setStages] = useState([]);
   const [loadingStages, setLoadingStages] = useState(true);
+  const [napkin, setNapkin] = useState({ color: '', link: '', notes: '' });
+  const [napkinSaved, setNapkinSaved] = useState(false);
+  const [napkinSaving, setNapkinSaving] = useState(false);
 
   const fetchStages = () => {
     if (!weddingId) return;
@@ -371,6 +377,29 @@ function CoupleView({ data }) {
   };
 
   useEffect(() => { fetchStages(); }, [weddingId]);
+
+  const saveNapkin = async () => {
+    if (!napkin.color.trim()) return toast.error('Wpisz kolor serwetek');
+    setNapkinSaving(true);
+    try {
+      const title = `🎀 Kolor serwetek: ${napkin.color.trim()}`;
+      const notes = [
+        napkin.link ? `Link: ${napkin.link}` : '',
+        napkin.notes || '',
+      ].filter(Boolean).join(' | ');
+      // Usuń stary jeśli istnieje
+      const existing = stages.find(s => s.title?.includes('serwetek'));
+      if (existing) await api.delete(`/stages/${existing.id}`);
+      await api.post(`/stages/wedding/${weddingId}`, {
+        title, description: 'Wybór koloru serwetek przez Parę Młodą',
+        notes: notes || undefined, status: 'completed',
+      });
+      toast.success('🎀 Zapisano wybór serwetek!');
+      setNapkinSaved(true);
+      fetchStages();
+    } catch { toast.error('Błąd zapisu'); }
+    finally { setNapkinSaving(false); }
+  };
 
   const toggleDone = async (stage) => {
     const newStatus = stage.status === 'completed' ? 'open' : 'completed';
@@ -421,15 +450,76 @@ function CoupleView({ data }) {
         <StatCard icon="💌" label="Wiadomości" value={dashboard.lastMessage ? '1 nowa' : 'Brak'} />
       </div>
 
+      {/* Karta koloru serwetek */}
+      <div className="card" style={{ padding: '20px 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <span style={{ fontSize: 22 }}>🎀</span>
+          <div>
+            <h3 style={{ margin: 0 }}>Kolor serwetek</h3>
+            <p style={{ fontSize: 11, color: '#9a9590', margin: '2px 0 0' }}>Wybierzcie kolor serwetek na Wasze wesele</p>
+          </div>
+          {napkinSaved && <span style={{ marginLeft: 'auto', fontSize: 10, background: '#f0f7f0', color: '#3a7a3a', padding: '3px 10px', borderRadius: 20, letterSpacing: '0.5px' }}>✓ Zapisano</span>}
+        </div>
+
+        {/* Paleta kolorów */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+          {[
+            { color: '#FFFFFF', name: 'Biały', border: '#e4e0da' },
+            { color: '#F5F0E8', name: 'Kremowy', border: '#d8d0c0' },
+            { color: '#F9C8D0', name: 'Różowy', border: '#f0b0bc' },
+            { color: '#E8A0B0', name: 'Dusty Rose', border: '#d888a0' },
+            { color: '#C8A0C0', name: 'Lawendowy', border: '#b888b0' },
+            { color: '#B08040', name: 'Złoty', border: '#907030' },
+            { color: '#C8B090', name: 'Szampański', border: '#b09878' },
+            { color: '#90B890', name: 'Miętowy', border: '#78a078' },
+            { color: '#6090A8', name: 'Błękitny', border: '#4878908' },
+            { color: '#808080', name: 'Szary', border: '#606060' },
+            { color: '#2C2C2C', name: 'Czarny', border: '#111' },
+          ].map(({ color, name, border }) => (
+            <button key={name} type="button" onClick={() => setNapkin(n => ({ ...n, color: name }))}
+              style={{ width: 52, height: 52, borderRadius: 8, border: `3px solid ${napkin.color === name ? '#b08a50' : border || '#e4e0da'}`, background: color, cursor: 'pointer', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: 4, boxShadow: napkin.color === name ? '0 0 0 2px rgba(176,138,80,.3)' : 'none', transition: 'all .15s' }}>
+              <span style={{ fontSize: 8, fontWeight: 700, color: ['Biały','Kremowy','Różowy','Szampański','Miętowy'].includes(name) ? '#555' : '#fff', letterSpacing: '0.3px', textAlign: 'center', lineHeight: 1.2 }}>{name}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Własny kolor */}
+        <div style={{ marginBottom: 12 }}>
+          <label className="label">Nazwa koloru</label>
+          <input className="input" placeholder="np. burgund, nude, sage green, dusty blue..." value={napkin.color} onChange={e => setNapkin(n => ({ ...n, color: e.target.value }))} />
+        </div>
+
+        {/* Link */}
+        <div style={{ marginBottom: 12 }}>
+          <label className="label">🔗 Link do inspiracji (opcjonalnie)</label>
+          <input className="input" type="url" placeholder="https://www.pinterest.com/..." value={napkin.link} onChange={e => setNapkin(n => ({ ...n, link: e.target.value }))} />
+          {napkin.link && (
+            <a href={napkin.link} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#b08a50', textDecoration: 'none', marginTop: 4, display: 'inline-block' }}>
+              🔗 Otwórz link →
+            </a>
+          )}
+        </div>
+
+        {/* Uwagi */}
+        <div style={{ marginBottom: 16 }}>
+          <label className="label">💬 Dodatkowe uwagi (opcjonalnie)</label>
+          <textarea className="input" rows={2} placeholder="np. chcemy żeby pasowały do kwiatów..." value={napkin.notes} onChange={e => setNapkin(n => ({ ...n, notes: e.target.value }))} style={{ resize: 'none' }} />
+        </div>
+
+        <button onClick={saveNapkin} disabled={napkinSaving} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+          {napkinSaving ? 'Zapisywanie...' : napkinSaved ? '✓ Zaktualizuj wybór' : '🎀 Zapisz kolor serwetek'}
+        </button>
+      </div>
+
       {/* Zadania od administratora */}
-      {stages.length > 0 && (
+      {stages.filter(s => !s.title?.includes('serwetek')).length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <h2 style={{ margin: 0 }}>Wasze przygotowania</h2>
           {loadingStages ? (
             <p style={{ color: '#9a9590', textAlign: 'center', padding: 20 }}>Ładowanie...</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {stages.map(s => {
+              {stages.filter(s => !s.title?.includes('serwetek')).map(s => {
                 const isDone = s.status === 'completed';
                 const overdue = s.dueDate && new Date(s.dueDate) < new Date() && !isDone;
                 return (
