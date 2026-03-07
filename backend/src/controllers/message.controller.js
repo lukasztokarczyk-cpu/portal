@@ -42,13 +42,15 @@ exports.send = async (req, res, next) => {
       where: { id: req.params.weddingId },
       include: { couple: { select: { name: true, email: true } } }
     });
+    console.log('[EMAIL] Próba wysyłki — USER:', process.env.EMAIL_USER, '| PASS:', process.env.EMAIL_PASS ? '✓ ustawione' : '✗ BRAK');
     sendMessageNotification({
       senderName: req.user.name || req.user.login,
       senderRole: req.user.role,
       coupleName: wedding?.couple?.name || wedding?.couple?.email || '',
       content: content.length > 200 ? content.substring(0, 200) + '...' : content,
       weddingId: req.params.weddingId,
-    }).catch(err => console.error('[EMAIL] Błąd:', err.message));
+    }).then(() => console.log('[EMAIL] Wysłano pomyślnie'))
+      .catch(err => console.error('[EMAIL] Błąd szczegółowy:', err));
 
     res.status(201).json(message);
   } catch (err) {
