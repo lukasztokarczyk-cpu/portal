@@ -62,27 +62,3 @@ exports.sendMessageNotification = async ({ senderName, senderRole, coupleName, c
     `
   );
 };
-
-exports.sendNapkinNotification = async ({ coupleName, napkinColor, napkinLink, napkinNotes }) => {
-  const portalUrl = process.env.FRONTEND_URL || 'https://portal-five-lac.vercel.app';
-
-  await sendMail(
-    `🎀 Wybór serwetek — ${coupleName || 'Para Młoda'}`,
-    `
-    <div style="font-family:Arial,sans-serif;max-width:540px;margin:0 auto;padding:24px;background:#f8f6f3;">
-      <div style="background:#fff;border:1px solid #e4e0da;border-radius:4px;padding:24px;">
-        <h2 style="margin:0 0 4px;font-size:18px;color:#1c1a17;">Wybór koloru serwetek</h2>
-        <p style="margin:0 0 16px;font-size:13px;color:#9a9590;">${coupleName || 'Para Młoda'}</p>
-        <div style="background:#f8f6f3;border-left:3px solid #b08a50;padding:16px;border-radius:0 4px 4px 0;margin-bottom:20px;">
-          <p style="margin:0 0 8px;font-size:20px;color:#1c1a17;">🎀 ${napkinColor}</p>
-          ${napkinLink ? `<p style="margin:4px 0 0;"><a href="${napkinLink}" style="color:#b08a50;font-size:12px;">🔗 Zobacz inspirację</a></p>` : ''}
-          ${napkinNotes ? `<p style="margin:8px 0 0;font-size:12px;color:#9a9590;font-style:italic;">💬 ${napkinNotes}</p>` : ''}
-        </div>
-        <a href="${portalUrl}" style="display:inline-block;padding:12px 24px;background:#1c1a17;color:#f0ebe0;text-decoration:none;font-size:12px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">
-          Otwórz portal →
-        </a>
-      </div>
-    </div>
-    `
-  );
-};

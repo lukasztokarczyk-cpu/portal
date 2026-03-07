@@ -40,7 +40,7 @@ export default function WeddingPlanPage() {
   const [form, setForm] = useState({
     groomCity: '', brideCity: '', churchCity: '',
     ceremonyTime: '14:00',
-    dessert1: 'tort', dessert2: 'deser',
+    dessert1: 'tort', dessert2: 'deser', cakeLocation: 'sala',
     groomDrink: 'szampan', brideDrink: 'szampan',
     vodkaService: 'obsługa', vodkaTiming: 'przed',
     wishTiming: 'po',
@@ -169,7 +169,7 @@ Trasy:
       ...(hasDessert1 ? [{
         time: dinnerEnd,
         label: form.dessert1 === 'tort' ? 'Tort weselny' : 'Deser',
-        category: 'dessert', note: '~1,5 godziny',
+        category: 'dessert', note: form.dessert1 === 'tort' ? `~1,5 godziny • ${form.cakeLocation === 'plener' ? '🌿 podanie w plenerze' : '🏛️ podanie w sali'}` : '~1,5 godziny',
       }] : []),
       // 1. kolacja
       { time: warm1, label: '1. ciepłe danie', category: 'meal', note: '🍗 Orientacyjna godzina' },
@@ -376,6 +376,29 @@ Trasy:
               </div>
             </div>
           ))}
+          {/* Miejsce podania tortu — tylko jeśli któryś deser to tort */}
+          {(form.dessert1 === 'tort' || form.dessert2 === 'tort') && (
+            <div>
+              <label className="label">🎂 Gdzie podać tort?</label>
+              <div className="flex gap-2 mt-2">
+                {[
+                  { value: 'sala', emoji: '🏛️', text: 'W sali' },
+                  { value: 'plener', emoji: '🌿', text: 'W plenerze' },
+                ].map(({ value, emoji, text }) => (
+                  <button key={value} type="button" onClick={() => set('cakeLocation', value)}
+                    className={`flex-1 py-2 px-3 rounded-xl border-2 text-sm font-medium transition-all ${form.cakeLocation === value ? 'border-rose-400 bg-rose-50 text-rose-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                    {emoji} {text}
+                  </button>
+                ))}
+              </div>
+              {form.cakeLocation === 'plener' && (
+                <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mt-2">
+                  🌿 Tort zostanie podany na zewnątrz — upewnij się że warunki pogodowe będą sprzyjające
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="flex gap-2">
             <button className="btn-secondary flex-1 justify-center" onClick={() => setStep(2)}>← Wróć</button>
             <button className="btn-primary flex-1 justify-center" onClick={() => setStep('3b')}>
