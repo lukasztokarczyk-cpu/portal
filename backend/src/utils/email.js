@@ -1,51 +1,42 @@
-const nodemailer = require('nodemailer');
-
-let transporter = null;
-
-function getTransporter() {
-  if (transporter) return transporter;
-
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    console.error('[EMAIL] BRAK zmiennych EMAIL_USER / EMAIL_PASS na Render!');
-    return null;
-  }
-
-  transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // SSL
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-
-  transporter.verify((err, ok) => {
-    if (err) console.error('[EMAIL] SMTP verify error:', err.message, err.code);
-    else console.log('[EMAIL] SMTP połączono pomyślnie ✓', process.env.EMAIL_USER);
-  });
-
-  return transporter;
-}
+/**
+ * Wysyłka emaili przez Resend API (bez SMTP — działa na Render free tier)
+ * Docs: https://resend.com/docs
+ */
 
 async function sendMail(subject, html) {
-  const t = getTransporter();
-  if (!t) return;
-
+  const apiKey = process.env.RESEND_API_KEY;
   const to = process.env.NOTIFY_EMAIL || 'lukasz.tokarczyk@gmail.com';
+
+  if (!apiKey) {
+    console.error('[EMAIL] Brak RESEND_API_KEY — ustaw na Render!');
+    return;
+  }
+
   console.log(`[EMAIL] Wysyłam do: ${to} | temat: ${subject}`);
 
   try {
-    const info = await t.sendMail({
-      from: `"Strefa Pary Młodej" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Strefa Pary Młodej <onboarding@resend.dev>',
+        to,
+        subject,
+        html,
+      }),
     });
-    console.log('[EMAIL] Wysłano ✓ messageId:', info.messageId);
+
+    const data = await res.json();
+    if (res.ok) {
+      console.log('[EMAIL] Wysłano ✓ id:', data.id);
+    } else {
+      console.error('[EMAIL] Błąd Resend:', JSON.stringify(data));
+    }
   } catch (err) {
-    console.error('[EMAIL] Błąd wysyłki:', err.message, '| code:', err.code, '| response:', err.response);
-    transporter = null; // reset — spróbuje połączyć ponownie
+    console.error('[EMAIL] Fetch error:', err.message);
   }
 }
 
