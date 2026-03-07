@@ -1,11 +1,26 @@
 const nodemailer = require('nodemailer');
 
+// Konfiguracja — obsługuje Gmail przez SMTP (bardziej niezawodne niż service:'gmail')
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // TLS
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // hasło aplikacji Gmail (App Password)
+    pass: process.env.EMAIL_PASS,
   },
+  tls: {
+    rejectUnauthorized: false,
+  },
+});
+
+// Weryfikacja połączenia przy starcie serwera
+transporter.verify((error) => {
+  if (error) {
+    console.error('[EMAIL] Błąd konfiguracji SMTP:', error.message);
+  } else {
+    console.log('[EMAIL] SMTP gotowy — ' + (process.env.EMAIL_USER || 'brak EMAIL_USER'));
+  }
 });
 
 /**
