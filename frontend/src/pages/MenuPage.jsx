@@ -30,7 +30,7 @@ export default function MenuPage() {
   const [weddings, setWeddings] = useState([]);
   const [selectedWeddingId, setSelectedWeddingId] = useState(null);
   const [menuData, setMenuData] = useState(null);
-  const [config, setConfig] = useState({ mainCourseMode: null, dessertChoice: null, locked: false, cakeSource: null, cakeFlavors: '', sweetTableChoice: null, sweetTableAmount: '', guestPackageChoice: null, guestPackagePrice: '' });
+  const [config, setConfig] = useState({ mainCourseMode: null, dessertChoice: null, locked: false, cakeSource: null, cakeFlavors: '', sweetTableChoice: null, sweetTableAmount: '', guestPackageChoice: null, guestPackagePrice: '', wiejskiStol: null });
   const [loading, setLoading] = useState(false);
   const [dishes, setDishes] = useState({});
   const [adminView, setAdminView] = useState('menu');
@@ -364,6 +364,10 @@ export default function MenuPage() {
             )}
           </Section>
 
+          <Section title="🌾 Wiejski stół">
+            <Row label="Wybór" value={config.wiejskiStol === 'tak' ? 'Tak — bezpłatny' : config.wiejskiStol === 'nie' ? 'Nie, dziękujemy' : null} />
+          </Section>
+
         </div>
 
         <div className="card bg-green-50 border border-green-200 print:hidden">
@@ -691,6 +695,32 @@ export default function MenuPage() {
           {config.guestPackageChoice === 'zewnetrzna' && (
             <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-sm text-blue-800">
               ℹ️ Paczki dla gości z firmy zewnętrznej — prosimy o kontakt z koordynatorem.
+            </div>
+          )}
+        </div>
+
+        {/* WIEJSKI STÓŁ */}
+        <div className="card border-t-4 border-green-200">
+          <div className="flex items-start justify-between flex-wrap gap-2 mb-1">
+            <h2 className="font-bold text-gray-800 text-lg">🌾 Wiejski stół</h2>
+            <span style={{ background: '#f0f9f0', color: '#2d6a2d', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, letterSpacing: '0.5px', border: '1px solid #b6ddb6' }}>
+              BEZPŁATNY
+            </span>
+          </div>
+          <p className="text-sm text-gray-500 mb-4">
+            Tradycyjny wiejski stół z lokalnymi przysmakami — pieczywo, sery, wędliny, przetwory. Dostępny bezpłatnie w ramach Waszego wesela.
+          </p>
+          <div className="flex gap-3 flex-wrap">
+            <ModeButton value="tak" current={config.wiejskiStol} onClick={() => updateConfig({ wiejskiStol: 'tak' })}>
+              ✅ Tak, chcemy
+            </ModeButton>
+            <ModeButton value="nie" current={config.wiejskiStol} onClick={() => updateConfig({ wiejskiStol: 'nie' })}>
+              ❌ Nie, dziękujemy
+            </ModeButton>
+          </div>
+          {config.wiejskiStol === 'tak' && (
+            <div className="mt-3 p-3 bg-green-50 rounded-xl border border-green-200 text-sm text-green-800">
+              🌾 Świetnie! Wiejski stół zostanie przygotowany — skontaktujemy się w sprawie szczegółów.
             </div>
           )}
         </div>
