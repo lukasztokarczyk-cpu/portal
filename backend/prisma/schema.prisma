@@ -198,6 +198,9 @@ model WeddingMenuConfig {
   guestPackagePrice  Decimal? @db.Decimal(10,2)
   guestPackageCount  Int?     // liczba paczek
 
+  // Wiejski stół
+  wiejskiStol    String?  // 'tak' | 'nie' | null
+
   updatedAt      DateTime @updatedAt
 }
 
