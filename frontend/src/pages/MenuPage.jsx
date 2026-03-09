@@ -699,8 +699,8 @@ export default function MenuPage() {
           )}
         </div>
 
-        {/* WIEJSKI STÓŁ */}
-        <div className="card border-t-4 border-green-200">
+        {/* WIEJSKI STÓŁ — tymczasowo ukryty */}
+        {false && <div className="card border-t-4 border-green-200">
           <div className="flex items-start justify-between flex-wrap gap-2 mb-1">
             <h2 className="font-bold text-gray-800 text-lg">🌾 Wiejski stół</h2>
             <span style={{ background: '#f0f9f0', color: '#2d6a2d', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, letterSpacing: '0.5px', border: '1px solid #b6ddb6' }}>
@@ -723,7 +723,7 @@ export default function MenuPage() {
               🌾 Świetnie! Wiejski stół zostanie przygotowany — skontaktujemy się w sprawie szczegółów.
             </div>
           )}
-        </div>
+        </div>}
 
         {/* PRZYCISK ZATWIERDZENIA — tylko para, gdy nie zatwierdzone */}
         {isCouple && !config.locked && (
