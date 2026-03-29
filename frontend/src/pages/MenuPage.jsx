@@ -230,18 +230,22 @@ export default function MenuPage() {
     const MAIN_MODE = { polmisek: 'Na półmiskach', talerz: 'Na talerzach' };
 
     const Row = ({ label, value }) => value ? (
-      <div className="flex justify-between py-1.5 border-b border-gray-100 last:border-0">
-        <span className="text-gray-500 text-sm">{label}</span>
-        <span className="text-gray-800 text-sm font-medium text-right max-w-[60%]">{value}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #f0ece8' }}>
+        <span style={{ fontSize: 13, color: '#9a9590' }}>{label}</span>
+        <span style={{ fontSize: 13, color: '#1c1a17', fontWeight: 500, textAlign: 'right', maxWidth: '60%' }}>{value}</span>
       </div>
     ) : null;
 
-    const Section = ({ title, children }) => (
-      <div className="mb-6">
-        <h3 className="font-bold text-gray-700 text-base mb-2 pb-1 border-b-2 border-rose-100">{title}</h3>
-        {children}
-      </div>
-    );
+    const Section = ({ title, children }) => {
+      const hasContent = Array.isArray(children) ? children.some(Boolean) : Boolean(children);
+      if (!hasContent) return null;
+      return (
+        <div style={{ marginBottom: 20 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: '#1c1a17', borderBottom: '2px solid #e8dcc8', paddingBottom: 6, marginBottom: 8, fontFamily: 'Georgia,serif' }}>{title}</h3>
+          {children}
+        </div>
+      );
+    };
 
     return (
       <div className="space-y-5">
@@ -259,12 +263,26 @@ export default function MenuPage() {
         </div>
 
         {/* Nagłówek do druku */}
-        <div className="hidden print:block text-center mb-6">
-          <h1 className="text-2xl font-bold">Menu weselne</h1>
-          {menuData.wedding?.couple?.name && <p className="text-gray-600 mt-1">{menuData.wedding.couple.name}</p>}
-          {menuData.wedding?.weddingDate && <p className="text-gray-500 text-sm">{new Date(menuData.wedding.weddingDate).toLocaleDateString('pl-PL')}</p>}
+        <div className="hidden print:block text-center mb-8" style={{ borderBottom: '2px solid #b08a50', paddingBottom: 20 }}>
+          <div style={{ fontFamily: 'Georgia,serif', fontSize: 11, letterSpacing: '3px', textTransform: 'uppercase', color: '#b08a50', marginBottom: 8 }}>Perła Pienin</div>
+          <h1 style={{ fontFamily: 'Georgia,serif', fontSize: 26, fontWeight: 700, margin: '0 0 6px' }}>Menu Weselne</h1>
+          {menuData.wedding?.couple?.name && <p style={{ fontSize: 15, color: '#555', margin: '4px 0' }}>{menuData.wedding.couple.name}</p>}
+          {menuData.wedding?.weddingDate && <p style={{ fontSize: 12, color: '#999' }}>{new Date(menuData.wedding.weddingDate).toLocaleDateString('pl-PL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>}
         </div>
 
+        {/* Style drukowania */}
+        <style>{`
+          @media print {
+            body * { visibility: hidden; }
+            #menu-print-area, #menu-print-area * { visibility: visible; }
+            #menu-print-area { position: absolute; left: 0; top: 0; width: 100%; }
+            @page { margin: 1.5cm 2cm; size: A4; }
+            .print\:hidden { display: none !important; }
+            .hidden.print\:block { display: block !important; }
+          }
+        `}</style>
+
+        <div id="menu-print-area">
         <div id="menu-summary" className="bg-white rounded-2xl shadow p-6 space-y-2">
 
           <Section title="🍲 Zupa">
@@ -370,6 +388,8 @@ export default function MenuPage() {
 
         </div>
 
+        </div>{/* end menu-print-area */}
+
         <div className="card bg-green-50 border border-green-200 print:hidden">
           <p className="text-sm text-green-700 text-center">✅ Menu zatwierdzone wstępnie. Możesz je wydrukować lub wrócić do edycji.</p>
         </div>
@@ -388,6 +408,9 @@ export default function MenuPage() {
               {weddings.map(w => <option key={w.id} value={w.id}>{w?.couple?.name || w?.couple?.email}</option>)}
             </select>
           )}
+          <button onClick={() => setShowSummary(true)} className="btn-secondary text-sm">
+            🖨️ Drukuj menu
+          </button>
           {isAdmin && <button onClick={() => setAdminView('dishes')} className="btn-secondary text-sm">🍽️ Zarządzaj daniami</button>}
           {isAdmin && (
             <button onClick={() => updateConfig({ locked: !config.locked })} className="btn-secondary text-sm">
