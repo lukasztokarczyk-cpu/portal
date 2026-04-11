@@ -145,7 +145,7 @@ export default function Layout() {
         style={{ ...sidebarStyles.sidebar, width: mobileOpen ? '200px' : '56px', transition: 'width .2s ease' }}>
 
         <button onClick={() => setMobileOpen(o => !o)}
-          style={{ height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid rgba(176,138,80,.15)', color: '#b08a50', fontSize: '18px', background: 'none', border: 'none', borderBottom: '1px solid rgba(176,138,80,.15)', cursor: 'pointer', width: '100%' }}>
+          style={{ height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid rgba(176,138,80,.15)', color: '#b08a50', fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
           {mobileOpen ? '✕' : '☰'}
         </button>
 
