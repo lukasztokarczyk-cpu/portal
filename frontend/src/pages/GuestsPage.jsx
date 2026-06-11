@@ -151,6 +151,7 @@ export default function GuestsPage() {
   const { user } = useAuth();
   const isCouple = user?.role === 'couple';
   const [wedding, setWedding] = useState(null);
+  const [allWeddings, setAllWeddings] = useState([]);
   const [guests, setGuests] = useState([]);
   const [stats, setStats] = useState({});
   const [modal, setModal] = useState(null);
@@ -161,24 +162,48 @@ export default function GuestsPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        let weddingData;
         if (user?.role === 'couple') {
           const res = await api.get('/weddings/my');
-          weddingData = res.data;
+          setWedding(res.data);
+          if (res.data?.id) {
+            const g = await api.get(`/guests/wedding/${res.data.id}`);
+            setGuests(g.data.guests);
+            setStats(g.data.stats);
+          }
         } else {
           const res = await api.get('/weddings');
-          weddingData = res.data?.[0];
-        }
-        setWedding(weddingData);
-        if (weddingData?.id) {
-          const res = await api.get(`/guests/wedding/${weddingData.id}`);
-          setGuests(res.data.guests);
-          setStats(res.data.stats);
+          const weddings = res.data || [];
+          setAllWeddings(weddings);
+          // Znajdź najbliższe wesele (pierwsza data >= dziś)
+          const today = new Date(); today.setHours(0,0,0,0);
+          const upcoming = weddings
+            .filter(w => new Date(w.weddingDate) >= today)
+            .sort((a, b) => new Date(a.weddingDate) - new Date(b.weddingDate));
+          const nearest = upcoming[0] || weddings.sort((a,b) => new Date(b.weddingDate) - new Date(a.weddingDate))[0];
+          if (nearest) {
+            setWedding(nearest);
+            const g = await api.get(`/guests/wedding/${nearest.id}`);
+            setGuests(g.data.guests);
+            setStats(g.data.stats);
+          }
         }
       } catch (err) { console.error(err); }
     };
     fetchData();
   }, [user]);
+
+  const switchWedding = async (w) => {
+    setWedding(w);
+    setGuests([]);
+    setStats({});
+    setGroupFilter('all');
+    setSearch('');
+    try {
+      const res = await api.get(`/guests/wedding/${w.id}`);
+      setGuests(res.data.guests);
+      setStats(res.data.stats);
+    } catch (err) { console.error(err); }
+  };
 
   const refresh = () => api.get(`/guests/wedding/${wedding.id}`).then((res) => { setGuests(res.data.guests); setStats(res.data.stats); });
 
@@ -225,7 +250,14 @@ export default function GuestsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-800">Lista gości</h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Lista gości</h1>
+          {!isCouple && wedding && (
+            <p style={{ fontSize: 12, color: '#9a9590', marginTop: 2 }}>
+              {wedding.couple?.name || wedding.couple?.email || 'Para'} • {new Date(wedding.weddingDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+          )}
+        </div>
         <div className="flex gap-2">
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
           {!isCouple && <button onClick={() => fileRef.current.click()} className="btn-secondary text-sm">📥 Import CSV</button>}
@@ -233,6 +265,37 @@ export default function GuestsPage() {
           <button onClick={() => setModal('new')} className="btn-primary">+ Dodaj gościa</button>
         </div>
       </div>
+
+      {/* Selektor wesela dla admina */}
+      {!isCouple && allWeddings.length > 1 && (
+        <div style={{ background: '#fff', border: '1px solid #e4e0da', borderRadius: 8, padding: '14px 18px' }}>
+          <p className="label mb-3">Wybierz wesele</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {allWeddings
+              .sort((a, b) => new Date(a.weddingDate) - new Date(b.weddingDate))
+              .map(w => {
+                const isSelected = wedding?.id === w.id;
+                const date = new Date(w.weddingDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
+                const isUpcoming = new Date(w.weddingDate) >= new Date();
+                return (
+                  <button key={w.id} onClick={() => switchWedding(w)}
+                    style={{ padding: '8px 14px', borderRadius: 6, border: `2px solid ${isSelected ? '#b08a50' : '#e4e0da'}`, background: isSelected ? 'rgba(176,138,80,.08)' : '#fff', cursor: 'pointer', transition: 'all .15s', textAlign: 'left' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: isSelected ? '#b08a50' : '#1c1a17' }}>
+                      {w.couple?.name || w.couple?.email || 'Para'}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9a9590', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      📅 {date}
+                      {isUpcoming && <span style={{ background: '#f0f9f0', color: '#2d6a2d', fontSize: 9, padding: '1px 6px', borderRadius: 10, fontWeight: 600 }}>nadchodzące</span>}
+                    </div>
+                    <div style={{ fontSize: 10, color: '#9a9590', marginTop: 1 }}>
+                      👥 {w.guestCount || 0} gości
+                    </div>
+                  </button>
+                );
+              })}
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="flex gap-4">
