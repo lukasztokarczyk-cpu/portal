@@ -149,6 +149,7 @@ function GuestModal({ guest, weddingId, onClose, onSaved }) {
 
 export default function GuestsPage() {
   const { user } = useAuth();
+  const isCouple = user?.role === 'couple';
   const [wedding, setWedding] = useState(null);
   const [guests, setGuests] = useState([]);
   const [stats, setStats] = useState({});
@@ -158,11 +159,26 @@ export default function GuestsPage() {
   const fileRef = useRef();
 
   useEffect(() => {
-    api.get('/weddings/my').then((res) => {
-      setWedding(res.data);
-      return api.get(`/guests/wedding/${res.data.id}`);
-    }).then((res) => { setGuests(res.data.guests); setStats(res.data.stats); }).catch(console.error);
-  }, []);
+    const fetchData = async () => {
+      try {
+        let weddingData;
+        if (user?.role === 'couple') {
+          const res = await api.get('/weddings/my');
+          weddingData = res.data;
+        } else {
+          const res = await api.get('/weddings');
+          weddingData = res.data?.[0];
+        }
+        setWedding(weddingData);
+        if (weddingData?.id) {
+          const res = await api.get(`/guests/wedding/${weddingData.id}`);
+          setGuests(res.data.guests);
+          setStats(res.data.stats);
+        }
+      } catch (err) { console.error(err); }
+    };
+    fetchData();
+  }, [user]);
 
   const refresh = () => api.get(`/guests/wedding/${wedding.id}`).then((res) => { setGuests(res.data.guests); setStats(res.data.stats); });
 
@@ -212,8 +228,8 @@ export default function GuestsPage() {
         <h1 className="text-2xl font-bold text-gray-800">Lista gości</h1>
         <div className="flex gap-2">
           <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
-          <button onClick={() => fileRef.current.click()} className="btn-secondary text-sm">📥 Import CSV</button>
-          <button onClick={handleExport} className="btn-secondary text-sm">📄 Eksport</button>
+          {!isCouple && <button onClick={() => fileRef.current.click()} className="btn-secondary text-sm">📥 Import CSV</button>}
+          {!isCouple && <button onClick={handleExport} className="btn-secondary text-sm">📄 Eksport</button>}
           <button onClick={() => setModal('new')} className="btn-primary">+ Dodaj gościa</button>
         </div>
       </div>
@@ -255,12 +271,14 @@ export default function GuestsPage() {
               <tr key={g.id} className="hover:bg-gray-50 transition-colors">
                 <td className="py-3 pr-4 font-medium text-gray-800">{g.lastName} {g.firstName}</td>
                 <td className="py-3 pr-4 text-gray-500">
-                  <div>{g.ageCategory === 'childUnder3' ? '👶 0–3 lat' :
-                   g.ageCategory === 'child3to10' ? '👦 3–10 lat' :
-                   g.isChild ? '👦 Dziecko' : '👤 Dorosły'}</div>
-                  {g.guestGroup && g.guestGroup !== 'bride' && (
-                    <div className="text-xs text-rose-500 mt-0.5">{GROUP_LABELS[g.guestGroup] || g.guestGroup}</div>
-                  )}
+                  <div className="text-xs font-medium">
+                    {g.ageCategory === 'childUnder3' ? '👶 0–3 lat' :
+                     g.ageCategory === 'child3to10' ? '👦 3–10 lat' :
+                     g.isChild ? '👦 Dziecko' : '👤 Dorosły'}
+                  </div>
+                  <div className="text-xs text-rose-500 mt-0.5">
+                    {GROUP_LABELS[g.guestGroup] || '👰 Panna Młoda'}
+                  </div>
                 </td>
                 <td className="py-3 pr-4 text-gray-500">
                   {g.diet === 'standard' || !g.diet ? '🍽️ Std' :
