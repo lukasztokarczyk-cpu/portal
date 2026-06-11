@@ -208,7 +208,17 @@ function CoupleView({ weddingId }) {
 
   if (loading) return <div className="text-center py-8 text-gray-400">Ładowanie...</div>;
 
-  const { allowedDates = [], rooms = [], myBookings = [] } = roomData || {};
+  const { allowedDates: allDates = [], rooms = [], myBookings = [] } = roomData || {};
+  // Pokazuj tylko dzień wesela (offset 0), ukryj dzień przed (-1) i po (+1)
+  const allowedDates = allDates.filter(d => {
+    if (!allDates.length) return true;
+    const weddingDate = new Date(allDates[1] || allDates[0]);
+    const day = new Date(d);
+    day.setHours(0,0,0,0);
+    weddingDate.setHours(0,0,0,0);
+    const diff = Math.round((day - weddingDate) / 86400000);
+    return diff === 0;
+  });
 
   // Sprawdź czy pokój jest zarezerwowany w danej dacie przez kogoś
   const isRoomTaken = (room, dateStr) => {
