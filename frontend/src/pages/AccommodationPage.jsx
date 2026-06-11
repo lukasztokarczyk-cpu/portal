@@ -22,7 +22,7 @@ function getDayOffset(allowedDates, dateStr) {
 }
 
 // ── PANEL ADMINA ─────────────────────────────────────────
-function AdminView() {
+function AdminView({ weddingId }) {
   const [rooms, setRooms] = useState([]);
   const [bookings, setBookings] = useState([]);
   const [newRoom, setNewRoom] = useState({ name: '', description: '', capacity: 2 });
@@ -33,8 +33,13 @@ function AdminView() {
     Promise.all([
       api.get('/accommodation/rooms'),
       api.get('/accommodation/bookings'),
-    ]).then(([r, b]) => { setRooms(r.data); setBookings(b.data); });
-  }, []);
+    ]).then(([r, b]) => {
+      setRooms(r.data);
+      // Filtruj rezerwacje po weddingId jeśli podano
+      const filtered = weddingId ? b.data.filter(bk => bk.wedding?.id === weddingId) : b.data;
+      setBookings(filtered);
+    });
+  }, [weddingId]);
 
   useEffect(() => { refresh(); }, [refresh]);
 
@@ -372,8 +377,15 @@ export default function AccommodationPage() {
       api.get('/weddings/my').then(r => setWeddingId(r.data.id)).catch(console.error);
     } else {
       api.get('/weddings').then(r => {
-        setWeddings(r.data);
-        if (r.data[0]) setWeddingId(r.data[0].id);
+        const list = r.data || [];
+        setWeddings(list);
+        // Domyślnie najbliższe wesele
+        const today = new Date(); today.setHours(0,0,0,0);
+        const upcoming = list
+          .filter(w => new Date(w.weddingDate) >= today)
+          .sort((a, b) => new Date(a.weddingDate) - new Date(b.weddingDate));
+        const nearest = upcoming[0] || list.sort((a,b) => new Date(b.weddingDate) - new Date(a.weddingDate))[0];
+        if (nearest) setWeddingId(nearest.id);
       }).catch(console.error);
     }
   }, [isCouple]);
@@ -383,13 +395,29 @@ export default function AccommodationPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <h1 className="text-2xl font-bold text-gray-800">🛏️ Noclegi</h1>
         {!isCouple && weddings.length > 1 && (
-          <select className="input w-auto" value={weddingId || ''} onChange={e => setWeddingId(e.target.value)}>
-            {weddings.map(w => <option key={w.id} value={w.id}>{w.couple?.name || w.couple?.login}</option>)}
-          </select>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {weddings
+              .sort((a,b) => new Date(a.weddingDate) - new Date(b.weddingDate))
+              .map(w => {
+                const isSelected = weddingId === w.id;
+                const date = new Date(w.weddingDate).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' });
+                const isUpcoming = new Date(w.weddingDate) >= new Date();
+                return (
+                  <button key={w.id} onClick={() => setWeddingId(w.id)}
+                    style={{ padding: '7px 14px', borderRadius: 6, border: `2px solid ${isSelected ? '#b08a50' : '#e4e0da'}`, background: isSelected ? 'rgba(176,138,80,.08)' : '#fff', cursor: 'pointer', textAlign: 'left', transition: 'all .15s' }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: isSelected ? '#b08a50' : '#1c1a17' }}>{w.couple?.name || w.couple?.email || 'Para'}</div>
+                    <div style={{ fontSize: 11, color: '#9a9590', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      📅 {date}
+                      {isUpcoming && <span style={{ background: '#f0f9f0', color: '#2d6a2d', fontSize: 9, padding: '1px 5px', borderRadius: 10, fontWeight: 700 }}>nadchodzące</span>}
+                    </div>
+                  </button>
+                );
+              })}
+          </div>
         )}
       </div>
 
-      {isAdmin && <AdminView />}
+      {isAdmin && <AdminView weddingId={weddingId} />}
       {isCouple && weddingId && <CoupleView weddingId={weddingId} />}
       {!isCouple && !isAdmin && weddingId && <CoupleView weddingId={weddingId} />}
     </div>
