@@ -52,11 +52,56 @@ export default function WeddingPlanPage() {
   const [loadingTravel, setLoadingTravel] = useState(false);
   const [schedule, setSchedule] = useState(null);
   const [weddingId, setWeddingId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [savedStageId, setSavedStageId] = useState(null);
+  const [lastSaved, setLastSaved] = useState(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  const savePlan = async (scheduleData) => {
+    if (!weddingId) return;
+    setSaving(true);
+    try {
+      const notes = JSON.stringify({ schedule: scheduleData, form, travelTimes, savedAt: new Date().toISOString() });
+      if (savedStageId) {
+        await api.patch(`/stages/${savedStageId}`, { title: '📋 Harmonogram dnia weselnego', notes, status: 'completed' });
+      } else {
+        const res = await api.post(`/stages/wedding/${weddingId}`, {
+          title: '📋 Harmonogram dnia weselnego',
+          description: 'Wygenerowany harmonogram dnia weselnego',
+          notes,
+          status: 'completed',
+        });
+        setSavedStageId(res.data.id);
+      }
+      setLastSaved(new Date().toLocaleString('pl-PL'));
+    } catch (err) {
+      console.error('Błąd zapisu:', err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   useEffect(() => {
-    api.get('/weddings/my').then(r => setWeddingId(r.data?.id)).catch(() => {});
+    api.get('/weddings/my').then(async r => {
+      const id = r.data?.id;
+      setWeddingId(id);
+      if (!id) return;
+      // Załaduj zapisany harmonogram
+      try {
+        const stages = await api.get(`/stages/wedding/${id}`);
+        const planStage = stages.data?.find(s => s.title === '📋 Harmonogram dnia weselnego');
+        if (planStage?.notes) {
+          const saved = JSON.parse(planStage.notes);
+          if (saved.schedule) {
+            setSchedule(saved.schedule);
+            setStep(4);
+            setSavedStageId(planStage.id);
+            setLastSaved(new Date(planStage.updatedAt).toLocaleString('pl-PL'));
+          }
+        }
+      } catch {}
+    }).catch(() => {});
   }, []);
 
   // Krok 1a — czy podawać miejscowości Państwa Młodych?
@@ -213,8 +258,8 @@ Trasy:
     });
 
     setSchedule(events);
-
     setStep(4);
+    savePlan(events);
   };
 
   const totalSteps = skipHometowns ? 3 : 4;
@@ -592,6 +637,19 @@ Trasy:
                 </div>
               );
             })}
+          </div>
+
+          {/* Status zapisu */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', border: '1px solid #e4e0da', borderRadius: 8, padding: '12px 16px' }}>
+            <div>
+              <p style={{ fontSize: 12, color: '#9a9590', margin: 0 }}>
+                {saving ? '💾 Zapisywanie...' : lastSaved ? `✅ Zapisano: ${lastSaved}` : '⏳ Nie zapisano jeszcze'}
+              </p>
+            </div>
+            <button onClick={() => savePlan(schedule)} disabled={saving}
+              style={{ fontSize: 12, padding: '6px 14px', background: '#1c1a17', color: '#f0ebe0', border: 'none', borderRadius: 4, cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? .6 : 1 }}>
+              {saving ? 'Zapisywanie...' : '💾 Zapisz ponownie'}
+            </button>
           </div>
 
           <button className="btn-secondary w-full justify-center no-print" onClick={() => window.print()}>
