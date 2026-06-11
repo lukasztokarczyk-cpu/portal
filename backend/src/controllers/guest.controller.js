@@ -29,6 +29,15 @@ exports.create = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
+    const existing = await prisma.guest.findUnique({ where: { id: req.params.id } });
+    if (!existing) return res.status(404).json({ error: 'Gość nie istnieje' });
+
+    // Para może edytować tylko gości ze swojego wesela
+    if (req.user.role === 'couple') {
+      const wedding = await prisma.wedding.findUnique({ where: { coupleId: req.user.id } });
+      if (!wedding || existing.weddingId !== wedding.id) return res.status(403).json({ error: 'Brak dostępu' });
+    }
+
     const { firstName, lastName, isChild, ageCategory, diet, dietNotes, tableId, email, phone, rsvp, guestGroup } = req.body;
     const guest = await prisma.guest.update({
       where: { id: req.params.id },
@@ -42,6 +51,15 @@ exports.update = async (req, res, next) => {
 
 exports.remove = async (req, res, next) => {
   try {
+    const guest = await prisma.guest.findUnique({ where: { id: req.params.id } });
+    if (!guest) return res.status(404).json({ error: 'Gość nie istnieje' });
+
+    // Para może usuwać tylko gości ze swojego wesela
+    if (req.user.role === 'couple') {
+      const wedding = await prisma.wedding.findUnique({ where: { coupleId: req.user.id } });
+      if (!wedding || guest.weddingId !== wedding.id) return res.status(403).json({ error: 'Brak dostępu' });
+    }
+
     await prisma.guest.delete({ where: { id: req.params.id } });
     res.status(204).send();
   } catch (err) {
